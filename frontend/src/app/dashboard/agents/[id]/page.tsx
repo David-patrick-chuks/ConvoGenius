@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,90 +19,82 @@ import {
   Link as LinkIcon,
   Copy,
   CheckCircle,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
-
-// Mock data
-const agent = {
-  id: 1,
-  name: "Customer Support Bot",
-  description: "Handles customer inquiries and support tickets",
-  avatar: "/bot-1.jpg",
-  status: "trained",
-  conversations: 1247,
-  platforms: ["Website", "Slack"],
-  sources: [
-    { name: "FAQ.pdf", type: "PDF", size: "2.3 MB" },
-    { name: "Product Manual.docx", type: "DOC", size: "1.8 MB" },
-    { name: "Support Guidelines.txt", type: "TXT", size: "0.5 MB" },
-  ],
-  apis: ["Search", "Express Agent"],
-};
-
-const mockMessages = [
-  {
-    id: 1,
-    type: "user",
-    content: "Hi, I'm having trouble with my order. Can you help me?",
-    timestamp: "2:30 PM",
-    apiUsed: null,
-  },
-  {
-    id: 2,
-    type: "agent",
-    content: "Hello! I'd be happy to help you with your order. Could you please provide me with your order number or the email address you used when placing the order?",
-    timestamp: "2:30 PM",
-    apiUsed: "Express Agent",
-  },
-  {
-    id: 3,
-    type: "user",
-    content: "My order number is #12345",
-    timestamp: "2:31 PM",
-    apiUsed: null,
-  },
-  {
-    id: 4,
-    type: "agent",
-    content: "Thank you! I found your order #12345. It shows that your package was shipped yesterday and is currently in transit. You should receive it within 2-3 business days. Would you like me to send you the tracking information?",
-    timestamp: "2:31 PM",
-    apiUsed: "Search",
-  },
-];
+import { cortexDeskApiClient } from "@/utils/api";
+import { Agent, ChatMessage } from "@/types/api";
+import { useParams } from "next/navigation";
 
 export default function AgentChatPage() {
+  const params = useParams();
+  const agentId = params.id as string;
+  
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState(mockMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [agent, setAgent] = useState<Agent | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  useEffect(() => {
+    loadAgentAndMessages();
+  }, [agentId]);
 
-    const newMessage = {
-      id: messages.length + 1,
-      type: "user" as const,
+  const loadAgentAndMessages = async () => {
+    try {
+      setLoading(true);
+      
+      // Load agent details
+      const agentResponse = await cortexDeskApiClient.agents.getAgent(agentId);
+      if (agentResponse.success && agentResponse.data) {
+        setAgent(agentResponse.data);
+      }
+
+      // Load chat messages
+      const messagesResponse = await cortexDeskApiClient.chat.getMessages(agentId);
+      if (messagesResponse.success && messagesResponse.data) {
+        setMessages(messagesResponse.data);
+      }
+    } catch (error) {
+      console.error("Failed to load agent and messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || !agentId) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      agentId: agentId,
+      type: "user",
       content: message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      apiUsed: null,
+      timestamp: new Date().toISOString(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setMessage("");
+    setSending(true);
 
-    // Simulate agent response
-    setTimeout(() => {
-      const agentResponse = {
-        id: messages.length + 2,
-        type: "agent" as const,
-        content: "I understand your concern. Let me help you with that. Based on the information provided, I can assist you further.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        apiUsed: "Express Agent",
-      };
-      setMessages(prev => [...prev, agentResponse]);
-    }, 1000);
+    try {
+      const response = await cortexDeskApiClient.chat.sendMessage({
+        agentId: agentId,
+        message: message,
+      });
+
+      if (response.success && response.data) {
+        setMessages(prev => [...prev, response.data!]);
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -117,6 +109,32 @@ export default function AgentChatPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span>Loading agent...</span>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!agent) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-black mb-2">Agent not found</h2>
+            <p className="text-gray-600">The agent you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -145,9 +163,15 @@ export default function AgentChatPage() {
               {/* Status */}
               <div>
                 <h4 className="font-medium text-black mb-2">Status</h4>
-                <Badge className="bg-green-100 text-green-800">
+                <Badge className={`${
+                  agent.status === "trained" 
+                    ? "bg-green-100 text-green-800" 
+                    : agent.status === "training"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}>
                   <CheckCircle className="w-3 h-3 mr-1" />
-                  Trained
+                  {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
                 </Badge>
               </div>
 
@@ -161,7 +185,7 @@ export default function AgentChatPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Last Active:</span>
-                    <span className="font-medium">2 hours ago</span>
+                    <span className="font-medium">{agent.lastActive}</span>
                   </div>
                 </div>
               </div>
@@ -182,8 +206,8 @@ export default function AgentChatPage() {
               <div>
                 <h4 className="font-medium text-black mb-2">Knowledge Sources</h4>
                 <div className="space-y-2">
-                  {agent.sources.map((source, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  {agent.sources.map((source) => (
+                    <div key={source.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-2">
                         <FileText className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-black">{source.name}</span>
@@ -250,7 +274,9 @@ export default function AgentChatPage() {
                       } rounded-2xl p-4 shadow-sm`}>
                         <p className="text-sm">{msg.content}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs opacity-70">{msg.timestamp}</span>
+                          <span className="text-xs opacity-70">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                           {showDebug && msg.apiUsed && (
                             <Badge variant="outline" className="text-xs">
                               {msg.apiUsed}
@@ -260,6 +286,20 @@ export default function AgentChatPage() {
                       </div>
                     </motion.div>
                   ))}
+                  {sending && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-white text-black border-2 rounded-2xl p-4 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Agent is typing...</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </div>
 
@@ -272,13 +312,18 @@ export default function AgentChatPage() {
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message..."
                     className="flex-1 border-2 rounded-xl"
+                    disabled={sending}
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={!message.trim()}
+                    disabled={!message.trim() || sending}
                     className="bg-primary hover:bg-primary/90 text-white rounded-xl"
                   >
-                    <Send className="w-4 h-4" />
+                    {sending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,10 +25,13 @@ import {
   Grid,
   List,
   Plus,
-  FolderOpen
+  FolderOpen,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
+import { cortexDeskApiClient } from "@/utils/api";
+import { Resource } from "@/types/api";
 
 // Mock data for resources
 const resources = [
@@ -111,14 +114,35 @@ const fileTypeColors = {
 export default function ResourcesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  const loadResources = async () => {
+    try {
+      setLoading(true);
+      const response = await cortexDeskApiClient.resources.getResources();
+      if (response.success && response.data) {
+        setResources(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load resources:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredResources = resources.filter(resource =>
     resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     resource.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleFileSelect = (fileId: number) => {
+  const handleFileSelect = (fileId: string) => {
     setSelectedFiles(prev =>
       prev.includes(fileId)
         ? prev.filter(id => id !== fileId)
@@ -131,6 +155,35 @@ export default function ResourcesPage() {
       setSelectedFiles([]);
     } else {
       setSelectedFiles(filteredResources.map(r => r.id));
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const response = await cortexDeskApiClient.resources.uploadResource(file);
+      if (response.success && response.data) {
+        setResources(prev => [...prev, response.data!]);
+      }
+    } catch (error) {
+      console.error("Failed to upload file:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: string) => {
+    try {
+      const response = await cortexDeskApiClient.resources.deleteResource(resourceId);
+      if (response.success) {
+        setResources(prev => prev.filter(r => r.id !== resourceId));
+        setSelectedFiles(prev => prev.filter(id => id !== resourceId));
+      }
+    } catch (error) {
+      console.error("Failed to delete resource:", error);
     }
   };
 
@@ -163,9 +216,30 @@ export default function ResourcesPage() {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl">
-              <Plus className="w-4 h-4 mr-2" />
-              Upload Files
+            <input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              onChange={handleFileUpload}
+              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.zip"
+              aria-label="Upload files"
+            />
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-white rounded-xl"
+              onClick={() => document.getElementById('file-upload')?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Upload Files
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -173,10 +247,29 @@ export default function ResourcesPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Total Files", value: "24", icon: FileText },
-            { label: "Total Size", value: "45.2 MB", icon: FolderOpen },
-            { label: "Processed", value: "22", icon: FileText },
-            { label: "Processing", value: "2", icon: FileText },
+            { 
+              label: "Total Files", 
+              value: resources.length.toString(), 
+              icon: FileText 
+            },
+            { 
+              label: "Total Size", 
+              value: resources.reduce((total, r) => {
+                const size = parseFloat(r.size);
+                return total + (isNaN(size) ? 0 : size);
+              }, 0).toFixed(1) + " MB", 
+              icon: FolderOpen 
+            },
+            { 
+              label: "Processed", 
+              value: resources.filter(r => r.status === "processed").length.toString(), 
+              icon: FileText 
+            },
+            { 
+              label: "Processing", 
+              value: resources.filter(r => r.status === "processing").length.toString(), 
+              icon: FileText 
+            },
           ].map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -310,7 +403,10 @@ export default function ResourcesPage() {
                               <Download className="w-4 h-4 mr-2" />
                               Download
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => handleDeleteResource(resource.id)}
+                            >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
@@ -469,7 +565,10 @@ export default function ResourcesPage() {
                                   <Download className="w-4 h-4 mr-2" />
                                   Download
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteResource(resource.id)}
+                                >
                                   <Trash2 className="w-4 h-4 mr-2" />
                                   Delete
                                 </DropdownMenuItem>

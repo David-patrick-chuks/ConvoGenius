@@ -63,6 +63,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Failed to create agent:", error);
     }
+  }
   return (
     <DashboardLayout>
       <CreateAgentModal open={createAgentOpen} onOpenChange={setCreateAgentOpen} />

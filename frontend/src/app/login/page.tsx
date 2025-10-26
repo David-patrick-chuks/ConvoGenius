@@ -1,23 +1,51 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Mail, Lock, Github } from "lucide-react";
-import Link from "next/link";
+import { cortexDeskApiClient } from "@/utils/api";
 import { motion } from "framer-motion";
+import { Bot, Github, Loader2, Lock, Mail } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login:", { email, password });
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await cortexDeskApiClient.auth.login({
+        email,
+        password,
+      });
+
+      if (response.success && response.data) {
+        // Store token in localStorage (in a real app, you might use a more secure method)
+        localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        
+        // Redirect to dashboard
+        router.push("/dashboard");
+      } else {
+        setError(response.error || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An error occurred during login");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,6 +71,12 @@ export default function LoginPage() {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-black">
@@ -58,6 +92,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -76,6 +111,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -87,6 +123,7 @@ export default function LoginPage() {
                     id="remember"
                     className="rounded border-2 border-gray-300"
                     aria-label="Remember me"
+                    disabled={loading}
                   />
                   <Label htmlFor="remember" className="text-sm text-gray-600">
                     Remember me
@@ -100,8 +137,16 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-medium"
+                disabled={loading}
               >
-                Sign In
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
             

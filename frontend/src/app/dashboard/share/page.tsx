@@ -1,26 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Copy, 
-  ExternalLink, 
-  Eye, 
-  MessageCircle, 
-  TrendingUp, 
-  Clock,
-  CheckCircle,
-  Share2,
-  Link as LinkIcon,
-  Globe,
-  BarChart3
-} from "lucide-react";
+import { Analytics, Deployment } from "@/types/api";
+import { cortexDeskApiClient } from "@/utils/api";
 import { motion } from "framer-motion";
-import DashboardLayout from "@/components/DashboardLayout";
+import {
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Copy,
+  ExternalLink,
+  Eye,
+  Globe,
+  Link as LinkIcon,
+  MessageCircle,
+  Share2,
+  TrendingUp
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Mock data for shared agents
 const sharedAgents = [
@@ -62,6 +64,35 @@ const sharedAgents = [
 
 export default function ShareLinksPage() {
   const [copiedStates, setCopiedStates] = useState<{ [key: string]: boolean }>({});
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAnalyticsAndDeployments();
+  }, []);
+
+  const loadAnalyticsAndDeployments = async () => {
+    try {
+      setLoading(true);
+      
+      // Load analytics
+      const analyticsResponse = await cortexDeskApiClient.analytics.getAnalytics();
+      if (analyticsResponse.success && analyticsResponse.data) {
+        setAnalytics(analyticsResponse.data);
+      }
+
+      // Load deployments
+      const deploymentsResponse = await cortexDeskApiClient.deployments.getDeployments();
+      if (deploymentsResponse.success && deploymentsResponse.data) {
+        setDeployments(deploymentsResponse.data);
+      }
+    } catch (error) {
+      console.error("Failed to load analytics and deployments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -75,7 +106,7 @@ export default function ShareLinksPage() {
     }
   };
 
-  const generateNewLink = (agentId: number) => {
+  const generateNewLink = (agentId: string) => {
     // Handle generating new share link
     console.log("Generating new link for agent:", agentId);
   };
@@ -101,11 +132,16 @@ export default function ShareLinksPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            { label: "Total Views", value: "24,185", icon: Eye, change: "+12%" },
-            { label: "Unique Visitors", value: "13,255", icon: TrendingUp, change: "+8%" },
-            { label: "Total Chats", value: "2,139", icon: MessageCircle, change: "+15%" },
-            { label: "Avg Response Time", value: "1.6s", icon: Clock, change: "-0.2s" },
+          {analytics ? [
+            { label: "Total Views", value: analytics.totalViews.toLocaleString(), icon: Eye, change: "+12%" },
+            { label: "Unique Visitors", value: analytics.uniqueVisitors.toLocaleString(), icon: TrendingUp, change: "+8%" },
+            { label: "Total Chats", value: analytics.totalChats.toLocaleString(), icon: MessageCircle, change: "+15%" },
+            { label: "Avg Response Time", value: analytics.avgResponseTime, icon: Clock, change: "-0.2s" },
+          ] : [
+            { label: "Total Views", value: "0", icon: Eye, change: "+0%" },
+            { label: "Unique Visitors", value: "0", icon: TrendingUp, change: "+0%" },
+            { label: "Total Chats", value: "0", icon: MessageCircle, change: "+0%" },
+            { label: "Avg Response Time", value: "0s", icon: Clock, change: "+0s" },
           ].map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -138,9 +174,9 @@ export default function ShareLinksPage() {
         <div>
           <h2 className="text-2xl font-bold text-black mb-6">Public Agents</h2>
           <div className="space-y-6">
-            {sharedAgents.map((agent, index) => (
+            {deployments.map((deployment, index) => (
               <motion.div
-                key={agent.id}
+                key={deployment.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -150,27 +186,31 @@ export default function ShareLinksPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <Avatar className="w-12 h-12">
-                          <AvatarImage src={agent.avatar} />
+                          <AvatarImage src="/bot-1.jpg" />
                           <AvatarFallback>
                             <Globe className="w-6 h-6" />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <CardTitle className="text-lg text-black">{agent.name}</CardTitle>
+                          <CardTitle className="text-lg text-black">Agent {deployment.agentId}</CardTitle>
                           <CardDescription className="text-sm text-gray-600">
-                            Last activity: {agent.lastActivity}
+                            Platform: {deployment.platform}
                           </CardDescription>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className={`${
+                          deployment.status === "active" 
+                            ? "bg-green-100 text-green-800" 
+                            : "bg-gray-100 text-gray-800"
+                        }`}>
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          {agent.status}
+                          {deployment.status}
                         </Badge>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => generateNewLink(agent.id)}
+                          onClick={() => generateNewLink(deployment.agentId)}
                           className="border-2 rounded-xl"
                         >
                           <Share2 className="w-4 h-4 mr-2" />
@@ -186,17 +226,17 @@ export default function ShareLinksPage() {
                       <h4 className="font-medium text-black mb-2">Public Chat Link</h4>
                       <div className="flex items-center space-x-2">
                         <Input
-                          value={agent.publicUrl}
+                          value={`https://cortexdesk.com/chat/${deployment.agentId}`}
                           readOnly
                           className="text-sm border-2 rounded-xl"
                         />
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(agent.publicUrl, `url-${agent.id}`)}
+                          onClick={() => copyToClipboard(`https://cortexdesk.com/chat/${deployment.agentId}`, `url-${deployment.id}`)}
                           className="border-2 rounded-xl"
                         >
-                          {copiedStates[`url-${agent.id}`] ? (
+                          {copiedStates[`url-${deployment.id}`] ? (
                             <CheckCircle className="w-4 h-4" />
                           ) : (
                             <Copy className="w-4 h-4" />
@@ -217,15 +257,15 @@ export default function ShareLinksPage() {
                       <h4 className="font-medium text-black mb-2">Embed Code</h4>
                       <div className="space-y-2">
                         <div className="p-3 bg-gray-50 rounded-xl border-2">
-                          <code className="text-sm font-mono text-gray-800">{agent.embedCode}</code>
+                          <code className="text-sm font-mono text-gray-800">{`<script src="https://cortexdesk.com/embed/${deployment.agentId}.js"></script>`}</code>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(agent.embedCode, `embed-${agent.id}`)}
+                          onClick={() => copyToClipboard(`<script src="https://cortexdesk.com/embed/${deployment.agentId}.js"></script>`, `embed-${deployment.id}`)}
                           className="border-2 rounded-xl"
                         >
-                          {copiedStates[`embed-${agent.id}`] ? (
+                          {copiedStates[`embed-${deployment.id}`] ? (
                             <CheckCircle className="w-4 h-4 mr-2" />
                           ) : (
                             <Copy className="w-4 h-4 mr-2" />
@@ -241,22 +281,22 @@ export default function ShareLinksPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-4 bg-gray-50 rounded-xl">
                           <Eye className="w-6 h-6 text-primary mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-black">{agent.analytics.totalViews.toLocaleString()}</p>
+                          <p className="text-2xl font-bold text-black">{deployment.stats.totalViews.toLocaleString()}</p>
                           <p className="text-sm text-gray-600">Total Views</p>
                         </div>
                         <div className="text-center p-4 bg-gray-50 rounded-xl">
                           <TrendingUp className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-black">{agent.analytics.uniqueVisitors.toLocaleString()}</p>
+                          <p className="text-2xl font-bold text-black">{deployment.stats.uniqueVisitors.toLocaleString()}</p>
                           <p className="text-sm text-gray-600">Unique Visitors</p>
                         </div>
                         <div className="text-center p-4 bg-gray-50 rounded-xl">
                           <MessageCircle className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-black">{agent.totalChats.toLocaleString()}</p>
+                          <p className="text-2xl font-bold text-black">{deployment.stats.totalChats.toLocaleString()}</p>
                           <p className="text-sm text-gray-600">Total Chats</p>
                         </div>
                         <div className="text-center p-4 bg-gray-50 rounded-xl">
                           <BarChart3 className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-black">{agent.analytics.satisfactionRate}%</p>
+                          <p className="text-2xl font-bold text-black">{deployment.stats.satisfactionRate}%</p>
                           <p className="text-sm text-gray-600">Satisfaction</p>
                         </div>
                       </div>
@@ -266,12 +306,10 @@ export default function ShareLinksPage() {
                     <div>
                       <h4 className="font-medium text-black mb-2">Deployment Status</h4>
                       <div className="flex flex-wrap gap-2">
-                        {agent.platforms.map((platform) => (
-                          <Badge key={platform} variant="outline" className="text-xs">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            {platform}
-                          </Badge>
-                        ))}
+                        <Badge variant="outline" className="text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {deployment.platform}
+                        </Badge>
                       </div>
                     </div>
 

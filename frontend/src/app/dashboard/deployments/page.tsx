@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,10 +25,13 @@ import {
   CheckCircle,
   ExternalLink,
   Copy,
-  Settings
+  Settings,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
+import { cortexDeskApiClient } from "@/utils/api";
+import { Deployment } from "@/types/api";
 
 const deploymentPlatforms = [
   {
@@ -100,6 +103,9 @@ const deploymentPlatforms = [
 export default function DeploymentCenter() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [deploymentModalOpen, setDeploymentModalOpen] = useState(false);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deploying, setDeploying] = useState(false);
   const [formData, setFormData] = useState({
     botToken: "",
     workspaceId: "",
@@ -109,23 +115,57 @@ export default function DeploymentCenter() {
     campaignName: "",
   });
 
+  useEffect(() => {
+    loadDeployments();
+  }, []);
+
+  const loadDeployments = async () => {
+    try {
+      setLoading(true);
+      const response = await cortexDeskApiClient.deployments.getDeployments();
+      if (response.success && response.data) {
+        setDeployments(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load deployments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlatformClick = (platformId: string) => {
     setSelectedPlatform(platformId);
     setDeploymentModalOpen(true);
   };
 
-  const handleDeploy = () => {
-    // Handle deployment logic here
-    console.log("Deploying to:", selectedPlatform, formData);
-    setDeploymentModalOpen(false);
-    setFormData({
-      botToken: "",
-      workspaceId: "",
-      webhookUrl: "",
-      apiKey: "",
-      email: "",
-      campaignName: "",
-    });
+  const handleDeploy = async () => {
+    if (!selectedPlatform) return;
+
+    setDeploying(true);
+    try {
+      const deploymentConfig = {
+        platform: selectedPlatform,
+        config: formData,
+      };
+
+      const response = await cortexDeskApiClient.deployments.createDeployment(deploymentConfig);
+      if (response.success && response.data) {
+        setDeployments(prev => [...prev, response.data!]);
+        setDeploymentModalOpen(false);
+        setFormData({
+          botToken: "",
+          workspaceId: "",
+          webhookUrl: "",
+          apiKey: "",
+          email: "",
+          campaignName: "",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to deploy:", error);
+    } finally {
+      setDeploying(false);
+    }
   };
 
   const renderDeploymentForm = () => {
@@ -342,45 +382,58 @@ export default function DeploymentCenter() {
         </div>
 
         {/* Connected Platforms Summary */}
-        <div>
-          <h2 className="text-2xl font-bold text-black mb-6">Connected Platforms</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {deploymentPlatforms.filter(p => p.connected).map((platform) => {
-              const Icon = platform.icon;
-              return (
-                <Card key={platform.id} className="border-2">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${platform.color}`}>
-                          <Icon className="w-5 h-5" />
+        {deployments.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold text-black mb-6">Active Deployments</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {deployments.map((deployment) => {
+                const platform = deploymentPlatforms.find(p => p.id === deployment.platform);
+                if (!platform) return null;
+                
+                const Icon = platform.icon;
+                return (
+                  <Card key={deployment.id} className="border-2">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${platform.color}`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-black">{platform.name}</h3>
+                            <p className="text-sm text-gray-600">
+                              {deployment.status === "active" ? "Active deployment" : "Inactive deployment"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-black">{platform.name}</h3>
-                          <p className="text-sm text-gray-600">Active deployment</p>
+                        <div className="text-right">
+                          <p className={`text-sm font-medium ${
+                            deployment.status === "active" ? "text-green-600" : "text-gray-600"
+                          }`}>
+                            {deployment.status === "active" ? "Live" : "Inactive"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {deployment.stats.totalChats} chats
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-green-600">Live</p>
-                        <p className="text-xs text-gray-500">24/7</p>
+                      
+                      <div className="mt-4 flex space-x-2">
+                        <Button variant="outline" size="sm" className="flex-1 border-2 rounded-xl">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Configure
+                        </Button>
+                        <Button variant="outline" size="sm" className="border-2 rounded-xl">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="mt-4 flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-2 rounded-xl">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Configure
-                      </Button>
-                      <Button variant="outline" size="sm" className="border-2 rounded-xl">
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Deployment Modal */}
@@ -411,8 +464,16 @@ export default function DeploymentCenter() {
             <Button
               onClick={handleDeploy}
               className="bg-primary hover:bg-primary/90 text-white rounded-xl"
+              disabled={deploying}
             >
-              Deploy Agent
+              {deploying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deploying...
+                </>
+              ) : (
+                "Deploy Agent"
+              )}
             </Button>
           </div>
         </DialogContent>

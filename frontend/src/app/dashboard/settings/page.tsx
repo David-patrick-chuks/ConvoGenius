@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,15 +23,20 @@ import {
   Settings as SettingsIcon,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
+import { cortexDeskApiClient } from "@/utils/api";
+import { UserSettings, ApiKey } from "@/types/api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [showApiKeys, setShowApiKeys] = useState(false);
   const [theme, setTheme] = useState("light");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [profileData, setProfileData] = useState({
     name: "John Doe",
@@ -40,29 +45,59 @@ export default function SettingsPage() {
     bio: "AI enthusiast and developer",
   });
 
-  const [apiKeys, setApiKeys] = useState([
-    {
-      id: 1,
-      name: "You.com Search API",
-      key: "you_sk_1234567890abcdef",
-      status: "active",
-      lastUsed: "2 hours ago",
+  const [userSettings, setUserSettings] = useState<UserSettings>({
+    theme: "light",
+    notifications: {
+      email: true,
+      push: false,
+      agentTraining: true,
     },
-    {
-      id: 2,
-      name: "You.com News API",
-      key: "you_nk_abcdef1234567890",
-      status: "active",
-      lastUsed: "1 day ago",
+    privacy: {
+      dataAnalytics: true,
+      marketingEmails: false,
     },
-    {
-      id: 3,
-      name: "You.com Express Agent",
-      key: "you_ea_9876543210fedcba",
-      status: "inactive",
-      lastUsed: "1 week ago",
-    },
-  ]);
+  });
+
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [apiUsage, setApiUsage] = useState({
+    requestsToday: 0,
+    requestsThisMonth: 0,
+    monthlyLimit: 0,
+    usagePercentage: 0,
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      
+      // Load user settings
+      const settingsResponse = await cortexDeskApiClient.settings.getUserSettings();
+      if (settingsResponse.success && settingsResponse.data) {
+        setUserSettings(settingsResponse.data);
+        setTheme(settingsResponse.data.theme);
+      }
+
+      // Load API keys
+      const apiKeysResponse = await cortexDeskApiClient.settings.getApiKeys();
+      if (apiKeysResponse.success && apiKeysResponse.data) {
+        setApiKeys(apiKeysResponse.data);
+      }
+
+      // Load API usage
+      const usageResponse = await cortexDeskApiClient.settings.getApiUsage();
+      if (usageResponse.success && usageResponse.data) {
+        setApiUsage(usageResponse.data);
+      }
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -71,18 +106,60 @@ export default function SettingsPage() {
     { id: "security", label: "Security", icon: Key },
   ];
 
-  const handleSaveProfile = () => {
-    // Handle profile save
-    console.log("Saving profile:", profileData);
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const response = await cortexDeskApiClient.settings.updateUserSettings({
+        ...userSettings,
+        // Add profile data to settings if needed
+      });
+      if (response.success) {
+        // Show success message
+        console.log("Profile saved successfully");
+      }
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleAddApiKey = () => {
-    // Handle adding new API key
-    console.log("Adding new API key");
+  const handleAddApiKey = async () => {
+    const name = prompt("Enter API key name:");
+    const key = prompt("Enter API key:");
+    
+    if (name && key) {
+      try {
+        const response = await cortexDeskApiClient.settings.addApiKey(name, key);
+        if (response.success && response.data) {
+          setApiKeys(prev => [...prev, response.data!]);
+        }
+      } catch (error) {
+        console.error("Failed to add API key:", error);
+      }
+    }
   };
 
-  const handleDeleteApiKey = (id: number) => {
-    setApiKeys(apiKeys.filter(key => key.id !== id));
+  const handleDeleteApiKey = async (id: string) => {
+    try {
+      const response = await cortexDeskApiClient.settings.deleteApiKey(id);
+      if (response.success) {
+        setApiKeys(prev => prev.filter(key => key.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete API key:", error);
+    }
+  };
+
+  const handleUpdateSettings = async (newSettings: Partial<UserSettings>) => {
+    try {
+      const response = await cortexDeskApiClient.settings.updateUserSettings(newSettings);
+      if (response.success && response.data) {
+        setUserSettings(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+    }
   };
 
   const maskApiKey = (key: string) => {
@@ -267,15 +344,15 @@ export default function SettingsPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">1,247</h4>
+                    <h4 className="text-2xl font-bold text-black">{apiUsage.requestsToday.toLocaleString()}</h4>
                     <p className="text-sm text-gray-600">Requests Today</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">45,892</h4>
+                    <h4 className="text-2xl font-bold text-black">{apiUsage.requestsThisMonth.toLocaleString()}</h4>
                     <p className="text-sm text-gray-600">Requests This Month</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">10,000</h4>
+                    <h4 className="text-2xl font-bold text-black">{apiUsage.monthlyLimit.toLocaleString()}</h4>
                     <p className="text-sm text-gray-600">Monthly Limit</p>
                   </div>
                 </div>
@@ -340,21 +417,42 @@ export default function SettingsPage() {
                         <p className="font-medium text-black">Email Notifications</p>
                         <p className="text-sm text-gray-600">Receive updates via email</p>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch 
+                        checked={userSettings.notifications.email}
+                        onCheckedChange={(checked) => 
+                          handleUpdateSettings({
+                            notifications: { ...userSettings.notifications, email: checked }
+                          })
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-black">Push Notifications</p>
                         <p className="text-sm text-gray-600">Browser push notifications</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={userSettings.notifications.push}
+                        onCheckedChange={(checked) => 
+                          handleUpdateSettings({
+                            notifications: { ...userSettings.notifications, push: checked }
+                          })
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-black">Agent Training Updates</p>
                         <p className="text-sm text-gray-600">Get notified when agents finish training</p>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch 
+                        checked={userSettings.notifications.agentTraining}
+                        onCheckedChange={(checked) => 
+                          handleUpdateSettings({
+                            notifications: { ...userSettings.notifications, agentTraining: checked }
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 </div>
@@ -374,14 +472,28 @@ export default function SettingsPage() {
                     <p className="font-medium text-black">Data Analytics</p>
                     <p className="text-sm text-gray-600">Help improve CortexDesk by sharing usage data</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={userSettings.privacy.dataAnalytics}
+                    onCheckedChange={(checked) => 
+                      handleUpdateSettings({
+                        privacy: { ...userSettings.privacy, dataAnalytics: checked }
+                      })
+                    }
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-black">Marketing Emails</p>
                     <p className="text-sm text-gray-600">Receive product updates and tips</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={userSettings.privacy.marketingEmails}
+                    onCheckedChange={(checked) => 
+                      handleUpdateSettings({
+                        privacy: { ...userSettings.privacy, marketingEmails: checked }
+                      })
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Mail, Lock, User, Github } from "lucide-react";
+import { Bot, Mail, Lock, User, Github, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { cortexDeskApiClient } from "@/utils/api";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -17,11 +19,45 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log("Register:", formData);
+    setLoading(true);
+    setError("");
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await cortexDeskApiClient.auth.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (response.success && response.data) {
+        // Store token in localStorage (in a real app, you might use a more secure method)
+        localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        
+        // Redirect to dashboard
+        router.push("/dashboard");
+      } else {
+        setError(response.error || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError("An error occurred during registration");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +90,12 @@ export default function RegisterPage() {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium text-black">
@@ -70,6 +112,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -89,6 +132,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -108,6 +152,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -127,6 +172,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="pl-10 border-2 rounded-xl"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -138,6 +184,7 @@ export default function RegisterPage() {
                   className="rounded border-2 border-gray-300"
                   required
                   aria-label="Agree to terms and privacy policy"
+                  disabled={loading}
                 />
                 <Label htmlFor="terms" className="text-sm text-gray-600">
                   I agree to the{" "}
@@ -154,8 +201,16 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-medium"
+                disabled={loading}
               >
-                Create Account
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
             
