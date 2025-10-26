@@ -17,6 +17,8 @@ export default function ParticleBackground() {
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const createParticles = () => {
       const newParticles: Particle[] = [];
       for (let i = 0; i < 50; i++) {
@@ -37,15 +39,21 @@ export default function ParticleBackground() {
 
     const animateParticles = () => {
       setParticles((prev) =>
-        prev.map((particle) => ({
-          ...particle,
-          x: particle.x + particle.speedX,
-          y: particle.y + particle.speedY,
-          x: particle.x > window.innerWidth ? 0 : particle.x,
-          y: particle.y > window.innerHeight ? 0 : particle.y,
-          x: particle.x < 0 ? window.innerWidth : particle.x,
-          y: particle.y < 0 ? window.innerHeight : particle.y,
-        }))
+        prev.map((particle) => {
+          let newX = particle.x + particle.speedX;
+          let newY = particle.y + particle.speedY;
+          
+          if (newX > window.innerWidth) newX = 0;
+          if (newX < 0) newX = window.innerWidth;
+          if (newY > window.innerHeight) newY = 0;
+          if (newY < 0) newY = window.innerHeight;
+          
+          return {
+            ...particle,
+            x: newX,
+            y: newY,
+          };
+        })
       );
     };
 
