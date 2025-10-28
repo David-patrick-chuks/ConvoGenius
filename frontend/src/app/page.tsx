@@ -1,213 +1,339 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Bot, Zap, Globe, Github, Twitter, Linkedin } from "lucide-react";
-import Link from "next/link";
-import { motion } from "framer-motion";
+"use client";
+
 import ParticleBackground from "@/components/ParticleBackground";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { ArrowRight, Bot, Brain, Github, Globe, Linkedin, Rocket, Shield, Sparkles, Twitter, Zap } from "lucide-react";
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-slate-400/5 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+      
       <ParticleBackground />
       
-      {/* Navigation */}
+      {/* Glassmorphic Navigation */}
       <nav className="relative z-10 flex items-center justify-between p-6">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Bot className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Bot className="w-6 h-6 text-white" />
           </div>
-          <span className="text-2xl font-bold text-black">CortexDesk</span>
+          <span className="text-2xl font-bold text-white">
+            CortexDesk
+          </span>
         </div>
         <div className="flex items-center space-x-4">
           <Link href="/login">
-            <Button variant="ghost" className="text-black hover:text-primary">
+            <Button 
+              variant="ghost" 
+              className="text-gray-300 hover:text-white backdrop-blur-xl bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-6"
+            >
               Sign In
             </Button>
           </Link>
           <Link href="/register">
-            <Button className="bg-primary hover:bg-primary/90 text-white">
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl rounded-full px-6 transition-all">
               Get Started
+              <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 flex flex-col items-center justify-center px-6 py-20 text-center">
+      <section className="relative z-10 flex flex-col items-center justify-center px-6 py-20 text-center max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto"
+          className="w-full"
         >
-          <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
-            🚀 Now in Beta
-          </Badge>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="inline-flex items-center gap-2 backdrop-blur-xl bg-white/5 border border-white/10 rounded-full px-4 py-2 mb-8 shadow-lg"
+          >
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-gray-300">AI-Powered Agent Platform</span>
+          </motion.div>
           
-          <h1 className="text-6xl md:text-7xl font-bold text-black mb-6 leading-tight">
-            Build, Train & Deploy
+          <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight text-white">
+            Build Intelligent
             <br />
-            <span className="text-primary">AI Agents</span> Anywhere
+            <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+              AI Agents
+            </span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Create intelligent agents powered by You.com APIs for enterprise support, 
-            content, and automation. No coding required.
+          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+            Deploy production-ready AI agents with enterprise-grade APIs. 
+            Train, customize, and scale intelligent automation with zero code required.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <Link href="/register">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all">
-                Get Started Free
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-6 text-lg rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+              >
+                Start Building Free
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="#demo">
-              <Button size="lg" variant="outline" className="border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-4 text-lg rounded-xl">
-                View Demo
+            <Link href="#features">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-2 border-white/20 text-gray-300 hover:border-white/40 hover:bg-white/5 px-8 py-6 text-lg rounded-2xl backdrop-blur-xl bg-white/5 transition-all"
+              >
+                Explore Features
+              </Button>
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all hover:bg-white/10"
+            >
+              <div className="text-3xl font-bold text-blue-400 mb-2">
+                99.9%
+              </div>
+              <div className="text-gray-300 font-medium">Uptime</div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all hover:bg-white/10"
+            >
+              <div className="text-3xl font-bold text-blue-400 mb-2">
+                &lt;100ms
+              </div>
+              <div className="text-gray-300 font-medium">Response Time</div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all hover:bg-white/10"
+            >
+              <div className="text-3xl font-bold text-blue-400 mb-2">
+                Unlimited
+              </div>
+              <div className="text-gray-300 font-medium">Scale</div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-purple-50/50 border border-purple-200/50 rounded-full px-4 py-2 mb-6 shadow-sm">
+            <Rocket className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-900">Platform Features</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Everything you need to build
+            <br />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              intelligent agents
+            </span>
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
+            From creation to deployment, we provide powerful tools and integrations to scale your AI operations.
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-8 mb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            viewport={{ once: true }}
+          >
+            <div className="h-full backdrop-blur-md bg-white/70 border border-white/50 rounded-3xl p-8 hover:shadow-2xl transition-all hover:-translate-y-1">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">No-Code Builder</h3>
+              <p className="text-gray-600 leading-relaxed font-light">
+                Create powerful AI agents with our intuitive drag-and-drop interface. 
+                No technical knowledge required to build production-ready solutions.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <div className="h-full backdrop-blur-md bg-white/70 border border-white/50 rounded-3xl p-8 hover:shadow-2xl transition-all hover:-translate-y-1">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <Globe className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Multi-Platform</h3>
+              <p className="text-gray-600 leading-relaxed font-light">
+                Deploy your agents across any platform instantly. From websites and APIs 
+                to Slack, Discord, and custom integrations.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            viewport={{ once: true }}
+          >
+            <div className="h-full backdrop-blur-md bg-white/70 border border-white/50 rounded-3xl p-8 hover:shadow-2xl transition-all hover:-translate-y-1">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <Zap className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Enterprise APIs</h3>
+              <p className="text-gray-600 leading-relaxed font-light">
+                Leverage cutting-edge AI capabilities with production-grade APIs. 
+                Real-time processing with 99.9% uptime guaranteed.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Additional Features Grid */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="backdrop-blur-md bg-white/70 border border-white/50 rounded-3xl p-8 hover:shadow-2xl transition-all"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise Security</h3>
+                <p className="text-gray-600 font-light">
+                  SOC 2 compliant infrastructure with end-to-end encryption. 
+                  Your data and agents are protected at the highest level.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            viewport={{ once: true }}
+            className="backdrop-blur-md bg-white/70 border border-white/50 rounded-3xl p-8 hover:shadow-2xl transition-all"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Analytics</h3>
+                <p className="text-gray-600 font-light">
+                  Track performance, usage, and insights with real-time analytics. 
+                  Make data-driven decisions to optimize your agents.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 px-6 py-20 max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="backdrop-blur-md bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-200/50 rounded-3xl p-12 text-center shadow-2xl"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Ready to build intelligent agents?
+          </h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto font-light">
+            Join thousands of developers building the future of AI automation.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/register">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-6 text-lg rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="#features">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-2 border-white/50 text-gray-700 hover:border-white hover:bg-white/20 px-8 py-6 text-lg rounded-2xl backdrop-blur-sm bg-white/30 hover:bg-white/50 transition-all"
+              >
+                View Documentation
               </Button>
             </Link>
           </div>
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="relative z-10 px-6 py-20">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">
-              Everything you need to build AI agents
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From creation to deployment, we've got you covered with powerful tools and integrations.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-            >
-              <Card className="h-full border-2 hover:border-primary/20 transition-all hover:shadow-lg">
-                <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Bot className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-black mb-4">No-code Agent Builder</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Create intelligent agents with our intuitive drag-and-drop interface. 
-                    No technical knowledge required.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <Card className="h-full border-2 hover:border-primary/20 transition-all hover:shadow-lg">
-                <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Globe className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-black mb-4">Multi-platform Deployment</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Deploy your agents across websites, Slack, Discord, Telegram, 
-                    Twitter, and more with one click.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-            >
-              <Card className="h-full border-2 hover:border-primary/20 transition-all hover:shadow-lg">
-                <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Zap className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-black mb-4">Powered by You.com APIs</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Leverage cutting-edge AI capabilities with You.com's powerful 
-                    search, news, and express agent APIs.
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Screenshot Mockup Section */}
-      <section id="demo" className="relative z-10 px-6 py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">
-              See CortexDesk in Action
-            </h2>
-            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-              Watch how easy it is to create and deploy AI agents with our platform.
-            </p>
-            
-            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto">
-              <div className="bg-gray-100 rounded-xl h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <Bot className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">Dashboard Preview Coming Soon</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="relative z-10 bg-black text-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8">
+      <footer className="relative z-10 bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16 mt-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Bot className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold">CortexDesk</span>
               </div>
-              <p className="text-gray-400">
-                The future of AI agent development and deployment.
+              <p className="text-gray-400 font-light">
+                The next generation of AI agent development and deployment platform.
               </p>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
+              <ul className="space-y-2 text-gray-400 font-light">
                 <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
-                <li><Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="#docs" className="hover:text-white transition-colors">Documentation</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Documentation</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">API Reference</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="#about" className="hover:text-white transition-colors">About</Link></li>
-                <li><Link href="#blog" className="hover:text-white transition-colors">Blog</Link></li>
-                <li><Link href="#contact" className="hover:text-white transition-colors">Contact</Link></li>
+              <ul className="space-y-2 text-gray-400 font-light">
+                <li><Link href="#" className="hover:text-white transition-colors">About</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Careers</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
             
@@ -227,7 +353,7 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+          <div className="border-t border-gray-800 pt-8 text-center text-gray-400 font-light">
             <p>&copy; 2024 CortexDesk. All rights reserved.</p>
           </div>
         </div>

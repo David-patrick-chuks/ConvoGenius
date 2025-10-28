@@ -1,37 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
-  Upload, 
-  FileText, 
-  Image, 
-  File, 
-  MoreVertical, 
-  Download, 
-  Trash2, 
-  Eye,
-  Search,
-  Filter,
-  Grid,
-  List,
-  Plus,
-  FolderOpen,
-  Loader2
-} from "lucide-react";
-import { motion } from "framer-motion";
-import DashboardLayout from "@/components/DashboardLayout";
-import { cortexDeskApiClient } from "@/utils/api";
+import { Input } from "@/components/ui/input";
 import { Resource } from "@/types/api";
+import { cortexDeskApiClient } from "@/utils/api";
+import { motion } from "framer-motion";
+import {
+  Download,
+  Eye,
+  File,
+  FileText,
+  Filter,
+  FolderOpen,
+  Grid,
+  Image,
+  List,
+  Loader2,
+  MoreVertical,
+  Plus,
+  Search,
+  Trash2,
+  Upload
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Mock data for resources
 const resources = [
@@ -210,8 +210,8 @@ export default function ResourcesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-black">Resources</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-white">Resources</h1>
+            <p className="text-gray-400 mt-2">
               Manage your knowledge base files and documents
             </p>
           </div>

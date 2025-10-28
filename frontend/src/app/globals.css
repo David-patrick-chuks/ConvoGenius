@@ -50,7 +50,7 @@
   --card-foreground: oklch(0.145 0 0); /* Black */
   --popover: oklch(1 0 0); /* White */
   --popover-foreground: oklch(0.145 0 0); /* Black */
-  --primary: oklch(0.7 0.15 200); /* Sky blue #00BFFF */
+  --primary: oklch(0.65 0.12 240); /* Modern clean blue */
   --primary-foreground: oklch(1 0 0); /* White */
   --secondary: oklch(0.145 0 0); /* Black */
   --secondary-foreground: oklch(1 0 0); /* White */

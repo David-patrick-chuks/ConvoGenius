@@ -49,23 +49,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-slate-400/5 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
-        <Card className="border-2 shadow-xl">
+        <Card className="backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
           <CardHeader className="text-center pb-8">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Bot className="w-6 h-6 text-white" />
               </div>
-              <span className="text-3xl font-bold text-black">CortexDesk</span>
+              <span className="text-3xl font-bold text-white">CortexDesk</span>
             </div>
-            <CardTitle className="text-2xl font-bold text-black">Welcome back</CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardTitle className="text-2xl font-bold text-white">Welcome back</CardTitle>
+            <CardDescription className="text-gray-400">
               Sign in to your account to continue building AI agents
             </CardDescription>
           </CardHeader>
@@ -79,7 +85,7 @@ export default function LoginPage() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-black">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-300">
                   Email
                 </Label>
                 <div className="relative">
@@ -90,7 +96,7 @@ export default function LoginPage() {
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 border-2 rounded-xl"
+                    className="pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500"
                     required
                     disabled={loading}
                   />
@@ -98,7 +104,7 @@ export default function LoginPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-black">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-300">
                   Password
                 </Label>
                 <div className="relative">
@@ -109,7 +115,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 border-2 rounded-xl"
+                    className="pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-gray-500"
                     required
                     disabled={loading}
                   />
@@ -121,22 +127,22 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     id="remember"
-                    className="rounded border-2 border-gray-300"
+                    className="rounded border-2 border-white/20 bg-white/5"
                     aria-label="Remember me"
                     disabled={loading}
                   />
-                  <Label htmlFor="remember" className="text-sm text-gray-600">
+                  <Label htmlFor="remember" className="text-sm text-gray-400">
                     Remember me
                   </Label>
                 </div>
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 hover:underline">
                   Forgot password?
                 </Link>
               </div>
               
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-medium"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl font-medium shadow-lg"
                 disabled={loading}
               >
                 {loading ? (
@@ -155,22 +161,22 @@ export default function LoginPage() {
                 <Separator className="w-full" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                <span className="bg-[#0a0f1e] px-2 text-gray-400">Or continue with</span>
               </div>
             </div>
             
             <Button
               variant="outline"
-              className="w-full border-2 rounded-xl py-3 font-medium"
+              className="w-full border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 rounded-xl py-3 font-medium"
             >
               <Github className="w-4 h-4 mr-2" />
               Sign in with Google
             </Button>
             
             <div className="text-center">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-400">
                 Don't have an account?{" "}
-                <Link href="/register" className="text-primary hover:underline font-medium">
+                <Link href="/register" className="text-blue-400 hover:text-blue-300 hover:underline font-medium">
                   Sign up
                 </Link>
               </span>

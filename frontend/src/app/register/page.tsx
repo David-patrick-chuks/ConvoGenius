@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Mail, Lock, User, Github, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 import { cortexDeskApiClient } from "@/utils/api";
+import { motion } from "framer-motion";
+import { Bot, Github, Loader2, Lock, Mail, User } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -68,23 +68,29 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-black flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-slate-400/5 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
-        <Card className="border-2 shadow-xl">
+        <Card className="backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
           <CardHeader className="text-center pb-8">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Bot className="w-6 h-6 text-white" />
               </div>
-              <span className="text-3xl font-bold text-black">CortexDesk</span>
+              <span className="text-3xl font-bold text-white">CortexDesk</span>
             </div>
-            <CardTitle className="text-2xl font-bold text-black">Create your account</CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardTitle className="text-2xl font-bold text-white">Create your account</CardTitle>
+            <CardDescription className="text-gray-400">
               Start building AI agents today with our powerful platform
             </CardDescription>
           </CardHeader>

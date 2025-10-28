@@ -1,27 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import CreateAgentModal from "@/components/CreateAgentModal";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Bot, 
-  MessageCircle, 
-  Rocket, 
-  Edit, 
-  Share2, 
-  Plus,
-  TrendingUp,
-  Users,
-  Clock,
-  CheckCircle
-} from "lucide-react";
-import { motion } from "framer-motion";
-import DashboardLayout from "@/components/DashboardLayout";
-import CreateAgentModal from "@/components/CreateAgentModal";
-import { cortexDeskApiClient } from "@/utils/api";
 import { Agent } from "@/types/api";
+import { cortexDeskApiClient } from "@/utils/api";
+import { motion } from "framer-motion";
+import {
+    Bot,
+    CheckCircle,
+    Clock,
+    Edit,
+    MessageCircle,
+    Plus,
+    Rocket,
+    Share2,
+    TrendingUp,
+    Users
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const stats = [
   { label: "Total Agents", value: "12", icon: Bot, change: "+2 this week" },
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const [createAgentOpen, setCreateAgentOpen] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     loadAgents();
@@ -71,14 +73,14 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+            <p className="text-gray-400 mt-2">
               Welcome back! Here's what's happening with your AI agents.
             </p>
           </div>
           <Button 
             onClick={() => setCreateAgentOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl"
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Agent
@@ -96,16 +98,16 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="border-2 hover:border-primary/20 transition-all hover:shadow-lg">
+                <Card className="backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all shadow-lg">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                        <p className="text-2xl font-bold text-black mt-1">{stat.value}</p>
-                        <p className="text-xs text-green-600 mt-1">{stat.change}</p>
+                        <p className="text-sm font-medium text-gray-400">{stat.label}</p>
+                        <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                        <p className="text-xs text-emerald-400 mt-1">{stat.change}</p>
                       </div>
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-white/10">
+                        <Icon className="w-6 h-6 text-blue-400" />
                       </div>
                     </div>
                   </CardContent>
@@ -118,8 +120,8 @@ export default function DashboardPage() {
         {/* My Agents Section */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-black">My Agents</h2>
-            <Button variant="outline" className="border-2 rounded-xl">
+            <h2 className="text-2xl font-bold text-white">My Agents</h2>
+            <Button variant="outline" className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10">
               View All
             </Button>
           </div>
@@ -127,9 +129,9 @@ export default function DashboardPage() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="border-2 animate-pulse">
+                <Card key={i} className="backdrop-blur-xl bg-white/5 border border-white/10 animate-pulse">
                   <CardContent className="p-6">
-                    <div className="h-32 bg-gray-200 rounded"></div>
+                    <div className="h-32 bg-white/10 rounded"></div>
                   </CardContent>
                 </Card>
               ))}
@@ -143,7 +145,7 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card className="border-2 hover:border-primary/20 transition-all hover:shadow-lg h-full">
+                  <Card className="backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all h-full shadow-lg">
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
@@ -154,18 +156,18 @@ export default function DashboardPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <CardTitle className="text-lg text-black">{agent.name}</CardTitle>
-                            <CardDescription className="text-sm text-gray-600">
+                            <CardTitle className="text-lg text-white">{agent.name}</CardTitle>
+                            <CardDescription className="text-sm text-gray-400">
                               {agent.description}
                             </CardDescription>
                           </div>
                         </div>
                         <Badge 
                           variant={agent.status === "trained" ? "default" : "secondary"}
-                          className={`${
+                          className={`border-white/10 ${
                             agent.status === "trained" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-yellow-100 text-yellow-800"
+                              ? "bg-emerald-500/20 text-emerald-300" 
+                              : "bg-yellow-500/20 text-yellow-300"
                           }`}
                         >
                           {agent.status === "trained" ? (
@@ -179,32 +181,42 @@ export default function DashboardPage() {
                     </CardHeader>
 
                     <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="flex items-center justify-between text-sm text-gray-400">
                         <span>Last active: {agent.lastActive || "Never"}</span>
                         <span>{agent.conversations.toLocaleString()} conversations</span>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         {agent.platforms.map((platform) => (
-                          <Badge key={platform} variant="outline" className="text-xs">
+                          <Badge key={platform} variant="outline" className="text-xs border-white/10 text-gray-200">
                             {platform}
                           </Badge>
                         ))}
                       </div>
 
                       <div className="flex space-x-2 pt-2">
-                        <Button size="sm" variant="outline" className="flex-1 border-2 rounded-xl">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1 rounded-xl border-white/10 text-gray-200 hover:bg-white/10"
+                          onClick={() => router.push(`/dashboard/agents/${agent.id}`)}
+                        >
                           <MessageCircle className="w-4 h-4 mr-2" />
                           Chat
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1 border-2 rounded-xl">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1 rounded-xl border-white/10 text-gray-200 hover:bg-white/10"
+                          onClick={() => router.push('/dashboard/deployments')}
+                        >
                           <Rocket className="w-4 h-4 mr-2" />
                           Deploy
                         </Button>
-                        <Button size="sm" variant="outline" className="border-2 rounded-xl">
+                        <Button size="sm" variant="outline" className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button size="sm" variant="outline" className="border-2 rounded-xl">
+                        <Button size="sm" variant="outline" className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10">
                           <Share2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -218,41 +230,41 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <div>
-          <h2 className="text-2xl font-bold text-black mb-6">Recent Activity</h2>
-          <Card className="border-2">
+          <h2 className="text-2xl font-bold text-white mb-6">Recent Activity</h2>
+          <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-primary" />
+                <div className="flex items-center space-x-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-blue-300" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-black">Customer Support Bot deployed to Slack</p>
-                    <p className="text-sm text-gray-600">2 hours ago</p>
+                    <p className="font-medium text-white">Customer Support Bot deployed to Slack</p>
+                    <p className="text-sm text-gray-400">2 hours ago</p>
                   </div>
-                  <Badge variant="outline">Deployment</Badge>
+                  <Badge variant="outline" className="border-white/10 text-gray-200">Deployment</Badge>
                 </div>
 
-                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex items-center space-x-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                  <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-emerald-300" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-black">Content Writer training completed</p>
-                    <p className="text-sm text-gray-600">1 day ago</p>
+                    <p className="font-medium text-white">Content Writer training completed</p>
+                    <p className="text-sm text-gray-400">1 day ago</p>
                   </div>
-                  <Badge variant="outline" className="bg-green-100 text-green-800">Training</Badge>
+                  <Badge variant="outline" className="border-white/10 text-emerald-300">Training</Badge>
                 </div>
 
-                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center space-x-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                  <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-indigo-300" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-black">Sales Assistant reached 1000+ conversations</p>
-                    <p className="text-sm text-gray-600">2 days ago</p>
+                    <p className="font-medium text-white">Sales Assistant reached 1000+ conversations</p>
+                    <p className="text-sm text-gray-400">2 days ago</p>
                   </div>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800">Milestone</Badge>
+                  <Badge variant="outline" className="border-white/10 text-indigo-300">Milestone</Badge>
                 </div>
               </div>
             </CardContent>
