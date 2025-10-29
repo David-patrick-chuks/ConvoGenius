@@ -126,7 +126,7 @@ export default function AgentChatPage() {
         <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-black mb-2">Agent not found</h2>
-            <p className="text-gray-600">The agent you're looking for doesn't exist.</p>
+            <p className="text-gray-600">The agent you&apos;re looking for doesn&apos;t exist.</p>
           </div>
         </div>
       </DashboardLayout>

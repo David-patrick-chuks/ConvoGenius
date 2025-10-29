@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cortexDeskApiClient } from "@/utils/api";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface CreateAgentModalProps {
   open: boolean;
