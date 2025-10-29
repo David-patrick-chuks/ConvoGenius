@@ -31,11 +31,7 @@ export default function LoginPage() {
       });
 
       if (response.success && response.data) {
-        // Store token in localStorage (in a real app, you might use a more secure method)
-        localStorage.setItem("authToken", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        
-        // Redirect to dashboard
+        // Cookies are set by backend; no tokens stored client-side
         router.push("/dashboard");
       } else {
         setError(response.error || "Login failed");
@@ -168,6 +164,10 @@ export default function LoginPage() {
             <Button
               variant="outline"
               className="w-full border border-white/10 bg-white/5 hover:bg-white/10 text-gray-200 rounded-xl py-3 font-medium"
+              onClick={() => {
+                const base = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+                window.location.href = `${base}/auth/google`;
+              }}
             >
               <Github className="w-4 h-4 mr-2" />
               Sign in with Google

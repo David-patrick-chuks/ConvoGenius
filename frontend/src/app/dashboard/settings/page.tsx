@@ -1,40 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { 
-  User, 
-  Mail, 
-  Key, 
-  Upload, 
-  Save, 
-  Eye, 
-  EyeOff,
-  Trash2,
-  Plus,
-  Settings as SettingsIcon,
-  Moon,
-  Sun,
-  Monitor,
-  Loader2
-} from "lucide-react";
-import { motion } from "framer-motion";
-import DashboardLayout from "@/components/DashboardLayout";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { ApiKey, UserSettings } from "@/types/api";
 import { cortexDeskApiClient } from "@/utils/api";
-import { UserSettings, ApiKey } from "@/types/api";
+import { motion } from "framer-motion";
+import {
+    Eye,
+    EyeOff,
+    Key,
+    Monitor,
+    Moon,
+    Plus,
+    Save,
+    Settings as SettingsIcon,
+    Sun,
+    Trash2,
+    Upload,
+    User
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [showApiKeys, setShowApiKeys] = useState(false);
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState("dark");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -176,10 +174,10 @@ export default function SettingsPage() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-black">Profile Information</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-white">Profile Information</CardTitle>
+                <CardDescription className="text-gray-400">
                   Update your personal information and profile settings
                 </CardDescription>
               </CardHeader>
@@ -192,11 +190,11 @@ export default function SettingsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <Button variant="outline" className="border-2 rounded-xl">
+                    <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
                       <Upload className="w-4 h-4 mr-2" />
                       Upload Photo
                     </Button>
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-400 mt-2">
                       JPG, PNG or GIF. Max size 2MB.
                     </p>
                   </div>
@@ -204,18 +202,18 @@ export default function SettingsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium text-black">
+                    <Label htmlFor="name" className="text-sm font-medium text-gray-300">
                       Full Name
                     </Label>
                     <Input
                       id="name"
                       value={profileData.name}
                       onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                      className="border-2 rounded-xl"
+                      className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-black">
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-300">
                       Email
                     </Label>
                     <Input
@@ -223,39 +221,39 @@ export default function SettingsPage() {
                       type="email"
                       value={profileData.email}
                       onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                      className="border-2 rounded-xl"
+                      className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company" className="text-sm font-medium text-black">
+                  <Label htmlFor="company" className="text-sm font-medium text-gray-300">
                     Company
                   </Label>
                   <Input
                     id="company"
                     value={profileData.company}
                     onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                    className="border-2 rounded-xl"
+                    className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-sm font-medium text-black">
+                  <Label htmlFor="bio" className="text-sm font-medium text-gray-300">
                     Bio
                   </Label>
                   <Textarea
                     id="bio"
                     value={profileData.bio}
                     onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                    className="border-2 rounded-xl min-h-[100px]"
+                    className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 min-h-[100px]"
                     placeholder="Tell us about yourself..."
                   />
                 </div>
 
-                <Button onClick={handleSaveProfile} className="bg-primary hover:bg-primary/90 text-white rounded-xl">
+                <Button onClick={handleSaveProfile} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl" disabled={saving}>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -270,16 +268,16 @@ export default function SettingsPage() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl text-black">API Keys</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-xl text-white">API Keys</CardTitle>
+                    <CardDescription className="text-gray-400">
                       Manage your You.com API keys and tokens
                     </CardDescription>
                   </div>
-                  <Button onClick={handleAddApiKey} className="bg-primary hover:bg-primary/90 text-white rounded-xl">
+                  <Button onClick={handleAddApiKey} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
                     <Plus className="w-4 h-4 mr-2" />
                     Add API Key
                   </Button>
@@ -287,12 +285,12 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {apiKeys.map((apiKey) => (
-                  <div key={apiKey.id} className="p-4 border-2 rounded-xl">
+                  <div key={apiKey.id} className="p-4 border border-white/10 rounded-xl bg-white/5">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h4 className="font-medium text-black">{apiKey.name}</h4>
+                        <h4 className="font-medium text-white">{apiKey.name}</h4>
                         <div className="flex items-center space-x-2 mt-1">
-                          <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                          <code className="text-sm font-mono bg-black/40 text-gray-200 px-2 py-1 rounded">
                             {showApiKeys ? apiKey.key : maskApiKey(apiKey.key)}
                           </code>
                           <Button
@@ -304,7 +302,7 @@ export default function SettingsPage() {
                             {showApiKeys ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                           </Button>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-400 mt-1">
                           Last used: {apiKey.lastUsed}
                         </p>
                       </div>
@@ -313,8 +311,8 @@ export default function SettingsPage() {
                           variant={apiKey.status === "active" ? "default" : "secondary"}
                           className={`text-xs ${
                             apiKey.status === "active" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-gray-100 text-gray-800"
+                              ? "bg-green-500/20 text-green-300 border border-white/10" 
+                              : "bg-white/10 text-gray-300 border border-white/10"
                           }`}
                         >
                           {apiKey.status}
@@ -323,7 +321,7 @@ export default function SettingsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteApiKey(apiKey.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -334,26 +332,26 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-black">API Usage</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-white">API Usage</CardTitle>
+                <CardDescription className="text-gray-400">
                   Monitor your API usage and limits
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">{apiUsage.requestsToday.toLocaleString()}</h4>
-                    <p className="text-sm text-gray-600">Requests Today</p>
+                  <div className="text-center p-4 bg-white/5 border border-white/10 rounded-xl">
+                    <h4 className="text-2xl font-bold text-white">{apiUsage.requestsToday.toLocaleString()}</h4>
+                    <p className="text-sm text-gray-400">Requests Today</p>
                   </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">{apiUsage.requestsThisMonth.toLocaleString()}</h4>
-                    <p className="text-sm text-gray-600">Requests This Month</p>
+                  <div className="text-center p-4 bg-white/5 border border-white/10 rounded-xl">
+                    <h4 className="text-2xl font-bold text-white">{apiUsage.requestsThisMonth.toLocaleString()}</h4>
+                    <p className="text-sm text-gray-400">Requests This Month</p>
                   </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-2xl font-bold text-black">{apiUsage.monthlyLimit.toLocaleString()}</h4>
-                    <p className="text-sm text-gray-600">Monthly Limit</p>
+                  <div className="text-center p-4 bg-white/5 border border-white/10 rounded-xl">
+                    <h4 className="text-2xl font-bold text-white">{apiUsage.monthlyLimit.toLocaleString()}</h4>
+                    <p className="text-sm text-gray-400">Monthly Limit</p>
                   </div>
                 </div>
               </CardContent>
@@ -369,21 +367,21 @@ export default function SettingsPage() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-black">Appearance</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-white">Appearance</CardTitle>
+                <CardDescription className="text-gray-400">
                   Customize your dashboard appearance and theme
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <h4 className="font-medium text-black">Theme</h4>
+                  <h4 className="font-medium text-white">Theme</h4>
                   <div className="flex space-x-4">
                     <Button
                       variant={theme === "light" ? "default" : "outline"}
                       onClick={() => setTheme("light")}
-                      className="border-2 rounded-xl"
+                      className="rounded-xl"
                     >
                       <Sun className="w-4 h-4 mr-2" />
                       Light
@@ -391,7 +389,7 @@ export default function SettingsPage() {
                     <Button
                       variant={theme === "dark" ? "default" : "outline"}
                       onClick={() => setTheme("dark")}
-                      className="border-2 rounded-xl"
+                      className="rounded-xl"
                     >
                       <Moon className="w-4 h-4 mr-2" />
                       Dark
@@ -399,7 +397,7 @@ export default function SettingsPage() {
                     <Button
                       variant={theme === "system" ? "default" : "outline"}
                       onClick={() => setTheme("system")}
-                      className="border-2 rounded-xl"
+                      className="rounded-xl"
                     >
                       <Monitor className="w-4 h-4 mr-2" />
                       System
@@ -410,12 +408,12 @@ export default function SettingsPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="font-medium text-black">Notifications</h4>
+                  <h4 className="font-medium text-white">Notifications</h4>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-black">Email Notifications</p>
-                        <p className="text-sm text-gray-600">Receive updates via email</p>
+                        <p className="font-medium text-white">Email Notifications</p>
+                        <p className="text-sm text-gray-400">Receive updates via email</p>
                       </div>
                       <Switch 
                         checked={userSettings.notifications.email}
@@ -428,8 +426,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-black">Push Notifications</p>
-                        <p className="text-sm text-gray-600">Browser push notifications</p>
+                        <p className="font-medium text-white">Push Notifications</p>
+                        <p className="text-sm text-gray-400">Browser push notifications</p>
                       </div>
                       <Switch 
                         checked={userSettings.notifications.push}
@@ -442,8 +440,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-black">Agent Training Updates</p>
-                        <p className="text-sm text-gray-600">Get notified when agents finish training</p>
+                        <p className="font-medium text-white">Agent Training Updates</p>
+                        <p className="text-sm text-gray-400">Get notified when agents finish training</p>
                       </div>
                       <Switch 
                         checked={userSettings.notifications.agentTraining}
@@ -508,84 +506,84 @@ export default function SettingsPage() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-black">Change Password</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-white">Change Password</CardTitle>
+                <CardDescription className="text-gray-400">
                   Update your account password for better security
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword" className="text-sm font-medium text-black">
+                  <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-300">
                     Current Password
                   </Label>
                   <Input
                     id="currentPassword"
                     type="password"
-                    className="border-2 rounded-xl"
+                    className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-sm font-medium text-black">
+                  <Label htmlFor="newPassword" className="text-sm font-medium text-gray-300">
                     New Password
                   </Label>
                   <Input
                     id="newPassword"
                     type="password"
-                    className="border-2 rounded-xl"
+                    className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-black">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-300">
                     Confirm New Password
                   </Label>
                   <Input
                     id="confirmPassword"
                     type="password"
-                    className="border-2 rounded-xl"
+                    className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
-                <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
                   <Save className="w-4 h-4 mr-2" />
                   Update Password
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-black">Two-Factor Authentication</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-white">Two-Factor Authentication</CardTitle>
+                <CardDescription className="text-gray-400">
                   Add an extra layer of security to your account
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-black">Enable 2FA</p>
-                    <p className="text-sm text-gray-600">Use an authenticator app for additional security</p>
+                    <p className="font-medium text-white">Enable 2FA</p>
+                    <p className="text-sm text-gray-400">Use an authenticator app for additional security</p>
                   </div>
                   <Switch />
                 </div>
-                <Button variant="outline" className="border-2 rounded-xl">
+                <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
                   Setup Authenticator
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-red-200">
+            <Card className="border border-red-500/30 bg-red-500/5">
               <CardHeader>
-                <CardTitle className="text-xl text-red-600">Danger Zone</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-red-400">Danger Zone</CardTitle>
+                <CardDescription className="text-gray-400">
                   Irreversible actions that will permanently affect your account
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-black">Delete Account</p>
-                    <p className="text-sm text-gray-600">Permanently delete your account and all data</p>
+                    <p className="font-medium text-white">Delete Account</p>
+                    <p className="text-sm text-gray-400">Permanently delete your account and all data</p>
                   </div>
                   <Button variant="destructive" className="rounded-xl">
                     Delete Account
@@ -606,8 +604,8 @@ export default function SettingsPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-black">Settings</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+          <p className="text-gray-400 mt-2">
             Manage your account settings and preferences
           </p>
         </div>
@@ -615,7 +613,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="border-2">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
               <CardContent className="p-0">
                 <nav className="space-y-1">
                   {tabs.map((tab) => {
@@ -626,8 +624,8 @@ export default function SettingsPage() {
                         onClick={() => setActiveTab(tab.id)}
                         className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-none transition-colors ${
                           activeTab === tab.id
-                            ? "bg-primary text-white"
-                            : "text-gray-700 hover:bg-gray-100"
+                            ? "bg-white/10 text-white border-l-2 border-blue-500"
+                            : "text-gray-300 hover:bg-white/5"
                         }`}
                       >
                         <Icon className="w-5 h-5" />

@@ -1,7 +1,6 @@
-import jwt from 'jsonwebtoken';
-import { IUser, AuthResponse, LoginRequest, RegisterRequest } from '../types';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
-import { AppError } from '../types';
+import { AppError, AuthResponse, IUser, LoginRequest, RegisterRequest } from '../types';
 
 export class AuthService {
     private static readonly JWT_SECRET = process.env.JWT_SECRET!;
@@ -15,8 +14,8 @@ export class AuthService {
     static generateAccessToken(userId: string): string {
         return jwt.sign(
             { id: userId, type: 'access' },
-            this.JWT_SECRET,
-            { expiresIn: this.JWT_EXPIRE }
+            this.JWT_SECRET as unknown as Secret,
+            { expiresIn: this.JWT_EXPIRE } as SignOptions
         );
     }
 
@@ -26,8 +25,8 @@ export class AuthService {
     static generateRefreshToken(userId: string): string {
         return jwt.sign(
             { id: userId, type: 'refresh' },
-            this.JWT_REFRESH_SECRET,
-            { expiresIn: this.JWT_REFRESH_EXPIRE }
+            this.JWT_REFRESH_SECRET as unknown as Secret,
+            { expiresIn: this.JWT_REFRESH_EXPIRE } as SignOptions
         );
     }
 
@@ -73,7 +72,7 @@ export class AuthService {
         }
 
         // Check if user already exists
-        const existingUser = await User.findByEmail(email);
+        const existingUser = await (User as any).findByEmail(email);
         if (existingUser) {
             throw new AppError('User already exists with this email', 400);
         }
@@ -102,7 +101,7 @@ export class AuthService {
         const { email, password } = data;
 
         // Find user by email
-        const user = await User.findByEmail(email);
+        const user = await (User as any).findByEmail(email);
         if (!user) {
             throw new AppError('Invalid credentials', 401);
         }

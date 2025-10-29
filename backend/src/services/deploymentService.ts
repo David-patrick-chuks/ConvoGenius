@@ -32,16 +32,13 @@ class DeploymentService {
             throw new Error('Deployment not found');
         }
 
-        const agent = await Agent.findById(deployment.agent);
+        const agent = await Agent.findById((deployment as any).agentId);
         if (!agent) {
             throw new Error('Agent not found');
         }
 
         
-        if (!agent.isActive) {
-            throw new Error('Agent is not active');
-        }
-        if (!agent.isTrained) {
+        if (agent.status !== 'trained') {
             throw new Error('Agent is not trained');
         }
 
@@ -52,11 +49,11 @@ class DeploymentService {
 
         try {
             await connector.deploy(deployment);
-            deployment.status = 'active';
-            await deployment.save();
+            (deployment as any).status = 'active';
+            await (deployment as any).save();
         } catch (error) {
-            deployment.status = 'failed';
-            await deployment.save();
+            (deployment as any).status = 'error';
+            await (deployment as any).save();
             throw error;
         }
     }

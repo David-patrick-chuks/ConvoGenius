@@ -1,7 +1,7 @@
-import express, { NextFunction, Request, Response } from 'express';
-import Memory from '../models/Memory';
+import express, { NextFunction, Request, RequestHandler, Response } from 'express';
 import Agent from '../models/Agent';
 import ChatMessage from '../models/ChatMessage';
+import Memory from '../models/Memory';
 import { embedText, generateWithContext } from '../services/geminiService';
 
 const router = express.Router();
@@ -28,31 +28,35 @@ interface ChatResponse {
 }
 
 // Validation middleware for chat requests
-const validateChatRequest = (req: Request, res: Response, next: NextFunction) => {
+const validateChatRequest: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
   const { agentId, message, sessionId } = req.body as ChatRequest;
 
   if (!agentId || typeof agentId !== 'string') {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'agentId is required and must be a string',
       field: 'agentId'
     });
+    return;
   }
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'message is required and must be a non-empty string',
       field: 'message'
     });
+    return;
   }
 
   if (message.length > 10000) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'message is too long (maximum 10000 characters)',
       field: 'message'
     });
+    return;
   }
 
   next();
+  return;
 };
 
 // Function to retrieve relevant context using RAG
@@ -65,7 +69,7 @@ async function retrieveRelevantContext(agentId: string, userMessage: string, lim
     const similarMemories = await Memory.findSimilar(agentId, userEmbedding, limit);
     
     // Extract text content from similar memories
-    const contextTexts = similarMemories.map(memory => memory.text);
+    const contextTexts = similarMemories.map((memory: any) => memory.text);
     
     return contextTexts;
   } catch (error) {
@@ -166,7 +170,7 @@ async function generateContextualResponse(
  *       500:
  *         description: Internal server error
  */
-router.post('/', validateChatRequest, async (req: Request, res: Response) => {
+router.post('/', validateChatRequest, async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
   
   try {
@@ -176,15 +180,17 @@ router.post('/', validateChatRequest, async (req: Request, res: Response) => {
     // Verify agent exists and belongs to user
     const agent = await Agent.findOne({ _id: agentId, userId });
     if (!agent) {
-      return res.status(404).json({ error: 'Agent not found or access denied' });
+      res.status(404).json({ error: 'Agent not found or access denied' });
+      return;
     }
 
     // Check if agent is trained
     if (agent.status !== 'trained') {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Agent is not ready for chat. Please complete training first.',
         agentStatus: agent.status
       });
+      return;
     }
 
     // Generate session ID if not provided
@@ -234,8 +240,8 @@ router.post('/', validateChatRequest, async (req: Request, res: Response) => {
     await Promise.all([userMessage.save(), agentMessage.save()]);
 
     // Update agent's conversation count and last active
-    await agent.incrementConversations();
-    await agent.updateLastActive();
+    await (agent as any).incrementConversations();
+    await (agent as any).updateLastActive();
 
     const chatResponse: ChatResponse = {
       message: response,
@@ -251,6 +257,7 @@ router.post('/', validateChatRequest, async (req: Request, res: Response) => {
     };
 
     res.json(chatResponse);
+    return;
 
   } catch (error: unknown) {
     console.error('Chat error:', error);
@@ -258,6 +265,7 @@ router.post('/', validateChatRequest, async (req: Request, res: Response) => {
       error: 'Failed to process chat message',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 
@@ -310,7 +318,7 @@ router.post('/', validateChatRequest, async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/sessions', async (req: Request, res: Response) => {
+router.get('/sessions', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.user as any).id;
     const { agentId, limit = 20 } = req.query;
@@ -360,6 +368,7 @@ router.get('/sessions', async (req: Request, res: Response) => {
     ]);
 
     res.json(sessions);
+    return;
 
   } catch (error: unknown) {
     console.error('Error fetching chat sessions:', error);
@@ -367,6 +376,7 @@ router.get('/sessions', async (req: Request, res: Response) => {
       error: 'Failed to fetch chat sessions',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 
@@ -415,7 +425,7 @@ router.get('/sessions', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
+router.get('/sessions/:sessionId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { sessionId } = req.params;
     const userId = (req.user as any).id;
@@ -426,10 +436,12 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
     }).sort({ timestamp: 1 });
 
     if (messages.length === 0) {
-      return res.status(404).json({ error: 'Session not found' });
+      res.status(404).json({ error: 'Session not found' });
+      return;
     }
 
     res.json(messages);
+    return;
 
   } catch (error: unknown) {
     console.error('Error fetching chat messages:', error);
@@ -437,6 +449,7 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
       error: 'Failed to fetch chat messages',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 

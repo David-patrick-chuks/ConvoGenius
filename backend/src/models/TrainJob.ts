@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ITrainJob extends Document {
   jobId: string;
@@ -58,7 +58,7 @@ TrainJobSchema.index({ status: 1, createdAt: -1 });
 
 // Virtual for job ID
 TrainJobSchema.virtual('id').get(function() {
-  return this._id.toHexString();
+  return (this as any)._id.toHexString();
 });
 
 // Static method to find jobs by agent
@@ -93,4 +93,11 @@ TrainJobSchema.statics.getStats = function(userId: string) {
   ]);
 };
 
-export default mongoose.model<ITrainJob>('TrainJob', TrainJobSchema);
+interface ITrainJobModel extends Model<ITrainJob> {
+  findByAgent(agentId: string): Promise<ITrainJob[]>;
+  findByUser(userId: string): Promise<ITrainJob[]>;
+  findActive(): Promise<ITrainJob[]>;
+  getStats(userId: string): Promise<any[]>;
+}
+
+export default mongoose.model<ITrainJob, ITrainJobModel>('TrainJob', TrainJobSchema);

@@ -1,12 +1,39 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import csv from 'csv-parser';
 import * as mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
-import * as csv from 'csv-parser';
+import * as path from 'path';
 import { Readable } from 'stream';
+// Try to use a Node-friendly pdf.js build; fall back gracefully if unavailable
+let pdfjsLib: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  pdfjsLib = require('pdfjs-dist/legacy/build/pdf');
+} catch (e1) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+  } catch (e2) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      pdfjsLib = require('pdfjs-dist/build/pdf');
+    } catch (e3) {
+      // No compatible build found; PDF parsing will be disabled
+      pdfjsLib = null;
+    }
+  }
+}
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.js');
+// Configure PDF.js worker (only if available)
+if (pdfjsLib?.GlobalWorkerOptions) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.js');
+  } catch {
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.js');
+    } catch {
+      // ignore if worker cannot be resolved; getDocument may still work
+    }
+  }
+}
 
 export interface ParseResult {
   success: boolean;
@@ -54,6 +81,12 @@ export async function parseFile(fileBuffer: Buffer, fileType: string): Promise<P
 
 async function parsePDF(buffer: Buffer): Promise<ParseResult> {
   try {
+    if (!pdfjsLib) {
+      return {
+        success: false,
+        error: 'PDF parsing is not available in this environment'
+      };
+    }
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     let fullText = '';
     
@@ -155,7 +188,7 @@ async function parseCSV(buffer: Buffer): Promise<ParseResult> {
       
       stream
         .pipe(csv())
-        .on('data', (data) => results.push(data))
+        .on('data', (data: any) => results.push(data))
         .on('end', () => {
           // Convert CSV data to readable text
           const text = results.map(row => 
@@ -171,7 +204,7 @@ async function parseCSV(buffer: Buffer): Promise<ParseResult> {
             }
           });
         })
-        .on('error', (error) => {
+        .on('error', (error: any) => {
           reject({
             success: false,
             error: `CSV parsing failed: ${error.message}`

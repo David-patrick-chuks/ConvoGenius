@@ -1,11 +1,12 @@
 
-import express, { Express, Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
-import mongoose from 'mongoose';
-import cookieParser from 'cookie-parser';
-import passport from 'passport';
-import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express, { Express, NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
+import mongoose from 'mongoose';
+import passport from 'passport';
 import logger from './utils/logger'; // Import the logger
 
 dotenv.config();
@@ -21,6 +22,26 @@ app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
+
+// CORS Middleware
+const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean);
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    credentials: true,
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','X-Requested-With','Accept']
+}));
+
+// Simple request logger
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const start = Date.now();
+    const userId = (req as any).user?._id || (req as any).user?.id;
+    res.on('finish', () => {
+        const ms = Date.now() - start;
+        logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms${userId ? ` uid=${userId}` : ''}`);
+    });
+    next();
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI!)
@@ -38,9 +59,9 @@ import trainRoutes from './routes/train';
 app.use('/api/agents', agentRoutes);
 app.use('/api/train', trainRoutes);
 
-import deploymentRoutes from './routes/deployments';
 import analyticsRoutes from './routes/analytics';
 import chatRoutes from './routes/chat';
+import deploymentRoutes from './routes/deployments';
 import healthRoutes from './routes/health';
 import resourcesRoutes from './routes/resources';
 import settingsRoutes from './routes/settings';

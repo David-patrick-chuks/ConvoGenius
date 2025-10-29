@@ -41,7 +41,7 @@ ChatMessageSchema.index({ sessionId: 1, timestamp: 1 });
 
 // Virtual for message ID
 ChatMessageSchema.virtual('id').get(function() {
-  return this._id.toHexString();
+  return (this as any)._id.toHexString();
 });
 
 // Static method to find messages by session

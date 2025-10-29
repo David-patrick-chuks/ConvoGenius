@@ -3,14 +3,11 @@ import Redis from 'ioredis';
 import { ITrainingJob, IDeploymentJob } from '../types';
 import logger from '../utils/logger';
 
-// Redis connection
-const redis = new Redis({
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    retryDelayOnFailover: 100,
-    enableReadyCheck: false,
-    maxRetriesPerRequest: null,
-});
+// Redis connection (basic options for compatibility)
+const redis = new Redis(
+    parseInt(process.env.REDIS_PORT || '6379'),
+    process.env.REDIS_HOST || '127.0.0.1'
+);
 
 // Queue configurations
 const queueOptions = {

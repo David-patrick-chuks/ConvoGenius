@@ -58,7 +58,7 @@ ResourceSchema.index({ linkedAgents: 1 });
 
 // Virtual for resource ID
 ResourceSchema.virtual('id').get(function() {
-  return this._id.toHexString();
+  return (this as any)._id.toHexString();
 });
 
 // Virtual for file size in human readable format

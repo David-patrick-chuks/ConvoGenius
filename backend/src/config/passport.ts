@@ -1,23 +1,23 @@
 
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { Strategy as LocalStrategy } from 'passport-local';
 import dotenv from 'dotenv';
+import passport from 'passport';
+import { Profile as GoogleProfile, Strategy as GoogleStrategy, VerifyCallback as GoogleVerifyCallback } from 'passport-google-oauth20';
+import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
+import { Strategy as LocalStrategy } from 'passport-local';
 import logger from '../utils/logger';
+
 
 dotenv.config();
 
 import User from '../models/User';
-import { AuthService } from '../services/authService';
 
 // Google OAuth Strategy
-passport.use(new GoogleStrategy({
+passport.use(new (GoogleStrategy as unknown as any)({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback'
 },
-    async (accessToken, refreshToken, profile, done) => {
+    async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: GoogleVerifyCallback) => {
         try {
             const email = profile.emails?.[0]?.value;
             const name = profile.displayName || profile.name?.givenName + ' ' + profile.name?.familyName;
@@ -28,29 +28,29 @@ passport.use(new GoogleStrategy({
             }
 
             // Check if user already exists with Google ID
-            let user = await User.findByGoogleId(profile.id);
+            let user = await (User as any).findByGoogleId(profile.id);
             
             if (user) {
                 // Update last login
                 user.lastLogin = new Date();
-                await user.save();
+                await (user as any).save();
                 return done(null, user);
             }
 
             // Check if user exists with same email
-            user = await User.findByEmail(email);
+            user = await (User as any).findByEmail(email);
             
             if (user) {
                 // Link Google account to existing user
                 user.googleId = profile.id;
                 user.avatar = avatar || user.avatar;
                 user.lastLogin = new Date();
-                await user.save();
+                await (user as any).save();
                 return done(null, user);
             }
 
             // Create new user
-            user = await User.create({
+            user = await (User as any).create({
                 googleId: profile.id,
                 name: name || 'Google User',
                 email: email,
@@ -59,7 +59,7 @@ passport.use(new GoogleStrategy({
                 lastLogin: new Date()
             });
 
-            return done(null, user);
+            return done(null, user as any);
         } catch (error) {
             logger.error('Google OAuth error:', error);
             return done(error, undefined);
@@ -73,7 +73,7 @@ passport.use(new LocalStrategy({
     passwordField: 'password'
 }, async (email, password, done) => {
     try {
-        const user = await User.findByEmail(email);
+        const user = await (User as any).findByEmail(email);
         
         if (!user) {
             return done(null, false, { message: 'Invalid credentials' });
@@ -87,7 +87,7 @@ passport.use(new LocalStrategy({
 
         // Update last login
         user.lastLogin = new Date();
-        await user.save();
+        await (user as any).save();
 
         return done(null, user);
     } catch (error) {

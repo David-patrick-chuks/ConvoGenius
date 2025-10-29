@@ -70,7 +70,7 @@ export async function scrapeWebsite(url: string, options: ScrapeOptions = {}): P
           
           // Get main content
           const mainContent = document.querySelector('main, article, .content, #content, .main') || document.body;
-          return mainContent.innerText || mainContent.textContent || '';
+          return (mainContent as any).textContent || '';
         });
 
         if (content.trim().length > 0) {

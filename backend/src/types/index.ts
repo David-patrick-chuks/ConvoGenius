@@ -285,15 +285,16 @@ export interface IConnectorResponse {
 }
 
 // Express Request Extensions
-declare global {
-  namespace Express {
-    interface Request {
-      user?: IUser;
-      file?: Express.Multer.File;
-      files?: Express.Multer.File[];
-    }
-  }
-}
+// Commented out to avoid conflict with passport User type
+// declare global {
+//   namespace Express {
+//     interface Request {
+//       user?: any;
+//       file?: Express.Multer.File;
+//       files?: Express.Multer.File[];
+//     }
+//   }
+// }
 
 // Environment Variables
 export interface IEnvironment {

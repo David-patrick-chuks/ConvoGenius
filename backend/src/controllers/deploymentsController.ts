@@ -1,8 +1,8 @@
 
+import axios from 'axios';
 import { Request, Response } from 'express';
 import Deployment from '../models/Deployment';
 import deploymentQueue from '../queues/deploymentQueue';
-import axios from 'axios';
 import logger from '../utils/logger'; // Import the logger
 
 // @desc    Get all deployments for an agent
@@ -82,36 +82,37 @@ export const oauthCallback = async (req: Request, res: Response) => {
             return res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=${platform}&error=deployment_not_found`);
         }
 
-        const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID || 'YOUR_SLACK_CLIENT_ID';
-        const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET || 'YOUR_SLACK_CLIENT_SECRET';
-        const redirectUri = `${process.env.BACKEND_URL}/api/deployments/oauth/slack/callback`;
+        if (platform === 'slack') {
+            const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID || 'YOUR_SLACK_CLIENT_ID';
+            const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET || 'YOUR_SLACK_CLIENT_SECRET';
+            const redirectUri = `${process.env.BACKEND_URL}/api/deployments/oauth/slack/callback`;
 
-        try {
-            const response = await axios.post('https://slack.com/api/oauth.v2.access', null, {
-                params: {
-                    client_id: SLACK_CLIENT_ID,
-                    client_secret: SLACK_CLIENT_SECRET,
-                    code,
-                    redirect_uri: redirectUri,
-                },
-            });
+            try {
+                const response = await axios.post('https://slack.com/api/oauth.v2.access', null, {
+                    params: {
+                        client_id: SLACK_CLIENT_ID,
+                        client_secret: SLACK_CLIENT_SECRET,
+                        code,
+                        redirect_uri: redirectUri,
+                    },
+                });
 
-            if (response.data.ok) {
-                const { access_token, team } = response.data;
-                // Update deployment config with Slack tokens
-                deployment.config = { ...deployment.config, slack: { accessToken: access_token, teamId: team.id } };
-                await deployment.save();
+                if (response.data.ok) {
+                    const { access_token, team } = response.data;
+                    // Update deployment config with Slack tokens
+                    deployment.config = { ...deployment.config, slack: { accessToken: access_token, teamId: team.id } };
+                    await deployment.save();
 
-                logger.info('Slack OAuth successful:', { access_token, team });
-                res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=true&platform=slack`);
-            } else {
-                logger.error('Slack OAuth error:', response.data.error);
-                res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=slack&error=${response.data.error}`);
+                    logger.info('Slack OAuth successful:', { access_token, team });
+                    res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=true&platform=slack`);
+                } else {
+                    logger.error('Slack OAuth error:', response.data.error);
+                    res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=slack&error=${response.data.error}`);
+                }
+            } catch (error) {
+                logger.error('Error during Slack OAuth:', error);
+                res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=slack&error=internal_error`);
             }
-        } catch (error) {
-            logger.error('Error during Slack OAuth:', error);
-            res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=slack&error=internal_error`);
-        }
     } else if (platform === 'discord') {
         const { code } = req.query;
         if (!code) {
@@ -147,14 +148,15 @@ export const oauthCallback = async (req: Request, res: Response) => {
                 logger.error('Discord OAuth error:', response.data);
                 res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=discord&error=oauth_error`);
             }
-        } catch (error) {
-            logger.error('Error during Discord OAuth:', error);
-            res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=discord&error=internal_error`);
+            } catch (error) {
+                logger.error('Error during Discord OAuth:', error);
+                res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=discord&error=internal_error`);
+            }
+        } else {
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=${platform}&error=unsupported_platform`);
         }
-    } else {
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=${platform}&error=unsupported_platform`);
+    } catch (error) {
+        logger.error(`Error during OAuth callback for ${platform}:`, error);
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=${platform}&error=internal_error`);
     }
-} catch (error) {
-    logger.error(`Error during OAuth callback for ${platform}:`, error);
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?oauth_success=false&platform=${platform}&error=internal_error`);
-}
+};

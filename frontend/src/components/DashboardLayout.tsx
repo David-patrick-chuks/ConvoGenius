@@ -4,29 +4,32 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { HealthApiClient } from "@/utils/api/healthApi";
 import {
-  Bell,
-  Bot,
-  FolderOpen,
-  Home,
-  LogOut,
-  Plus,
-  Rocket,
-  Search,
-  Settings,
-  User
+    Bell,
+    Bot,
+    FolderOpen,
+    Home,
+    LogOut,
+    Plus,
+    Rocket,
+    Search,
+    Settings,
+    User
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { cortexDeskApiClient } from "@/utils/api";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   children: React.ReactNode;
@@ -42,7 +45,25 @@ const navigation = [
 
 export default function DashboardLayout({ children }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [healthy, setHealthy] = useState<boolean | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await cortexDeskApiClient.auth.logout();
+      router.push('/login');
+    } catch (_) {
+      router.push('/login');
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      const res = await HealthApiClient.getHealthStatus();
+      setHealthy(res.success);
+    })();
+  }, []);
 
   return (
     
@@ -126,7 +147,7 @@ export default function DashboardLayout({ children }: SidebarProps) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
@@ -161,6 +182,9 @@ export default function DashboardLayout({ children }: SidebarProps) {
             </div>
 
             <div className="flex items-center space-x-4">
+              {healthy !== null && (
+                <div className={`w-2.5 h-2.5 rounded-full ${healthy ? 'bg-emerald-400' : 'bg-red-500'}`} title={healthy ? 'Backend: OK' : 'Backend: Down'} />
+              )}
               <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/10">
                 <Bell className="w-5 h-5" />
                 <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 text-xs bg-blue-600 text-white">3</Badge>

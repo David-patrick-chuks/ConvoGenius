@@ -26,7 +26,7 @@ ApiKeySchema.index({ status: 1 });
 
 // Virtual for API key ID
 ApiKeySchema.virtual('id').get(function() {
-    return this._id.toHexString();
+    return (this as any)._id.toHexString();
 });
 
 // Pre-save middleware to generate API key

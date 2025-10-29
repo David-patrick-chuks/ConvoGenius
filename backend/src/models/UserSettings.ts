@@ -38,7 +38,7 @@ UserSettingsSchema.index({ userId: 1 });
 
 // Virtual for settings ID
 UserSettingsSchema.virtual('id').get(function() {
-    return this._id.toHexString();
+    return (this as any)._id.toHexString();
 });
 
 // Static method to find settings by user

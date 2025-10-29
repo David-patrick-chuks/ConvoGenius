@@ -3,28 +3,28 @@ import { BaseApiClient } from './base';
 
 export class AuthApiClient extends BaseApiClient {
   static async login(loginData: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.post<AuthResponse>('/auth', '', loginData);
-  }
-
-  static async register(registerData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.post<AuthResponse>('/auth', '', registerData);
-  }
-
-  static async getCurrentUser(token: string): Promise<ApiResponse<User>> {
-    return this.makeRequest<User>('/auth', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    return this.makeRequest<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(loginData),
     });
   }
 
+  static async register(registerData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+    return this.makeRequest<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(registerData),
+    });
+  }
+
+  static async getCurrentUser(token: string): Promise<ApiResponse<User>> {
+    return this.makeRequest<User>('/auth/me', {
+      method: 'GET',
+    }, token);
+  }
+
   static async logout(): Promise<ApiResponse<null>> {
-    // In a real app, you might want to invalidate the token on the server
-    return Promise.resolve({
-      success: true,
-      data: null,
-      message: 'Logged out successfully',
+    return this.makeRequest<null>('/auth/logout', {
+      method: 'POST'
     });
   }
 }

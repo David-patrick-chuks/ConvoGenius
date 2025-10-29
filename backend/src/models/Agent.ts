@@ -66,7 +66,7 @@ AgentSchema.index({ createdAt: -1 });
 
 // Virtual for agent ID
 AgentSchema.virtual('id').get(function() {
-    return this._id.toHexString();
+    return (this as any)._id.toHexString();
 });
 
 // Method to update last active

@@ -1,6 +1,6 @@
 
-import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import mongoose, { Schema } from 'mongoose';
 import { IUser } from '../types';
 
 const UserSchema: Schema = new Schema({
@@ -16,6 +16,8 @@ const UserSchema: Schema = new Schema({
     passwordResetToken: { type: String },
     passwordResetExpires: { type: Date },
     lastLogin: { type: Date },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
 }, { 
     timestamps: true,
     toJSON: { 
@@ -29,19 +31,18 @@ const UserSchema: Schema = new Schema({
     }
 });
 
-// Index for better performance
-UserSchema.index({ email: 1 });
-UserSchema.index({ googleId: 1 });
+// Note: Avoid duplicate indexes; rely on field-level indexes/uniques configured above
 
 // Pre-save middleware to hash password
-UserSchema.pre<IUser>('save', async function (next) {
-    if (!this.isModified('password') || !this.password) {
+UserSchema.pre('save', async function (next) {
+    const self: any = this as any;
+    if (!self.isModified('password') || !self.password) {
         return next();
     }
     
     try {
         const salt = await bcrypt.genSalt(12);
-        this.password = await bcrypt.hash(this.password, salt);
+        self.password = await bcrypt.hash(self.password, salt);
         next();
     } catch (error) {
         next(error as Error);
@@ -54,14 +55,15 @@ UserSchema.methods.comparePassword = async function (password: string): Promise<
     return bcrypt.compare(password, this.password);
 };
 
+// Static methods typing for the User model
 // Static method to find user by email
 UserSchema.statics.findByEmail = function(email: string) {
-    return this.findOne({ email: email.toLowerCase() });
+    return (this as any).findOne({ email: email.toLowerCase() });
 };
 
 // Static method to find user by Google ID
 UserSchema.statics.findByGoogleId = function(googleId: string) {
-    return this.findOne({ googleId });
+    return (this as any).findOne({ googleId });
 };
 
 export default mongoose.model<IUser>('User', UserSchema);

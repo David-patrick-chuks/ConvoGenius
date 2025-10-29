@@ -47,7 +47,7 @@ DeploymentSchema.index({ createdAt: -1 });
 
 // Virtual for deployment ID
 DeploymentSchema.virtual('id').get(function() {
-    return this._id.toHexString();
+    return (this as any)._id.toHexString();
 });
 
 // Method to update stats

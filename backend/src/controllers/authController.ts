@@ -1,9 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
+import { clearAuthCookies, setAuthCookies } from '../middlewares/authMiddleware';
 import { AuthService } from '../services/authService';
-import { LoginRequest, RegisterRequest, ChangePasswordRequest, ApiResponse } from '../types';
-import { AppError } from '../types';
-import { setAuthCookies, clearAuthCookies } from '../middlewares/authMiddleware';
+import { AppError, ChangePasswordRequest, LoginRequest, RegisterRequest } from '../types';
 import logger from '../utils/logger';
 
 export class AuthController {
@@ -24,7 +23,7 @@ export class AuthController {
             
             res.status(201).json({
                 success: true,
-                data: result,
+                data: { user: result.user },
                 message: 'User registered successfully'
             });
         } catch (error) {
@@ -49,7 +48,7 @@ export class AuthController {
             
             res.json({
                 success: true,
-                data: result,
+                data: { user: result.user },
                 message: 'Login successful'
             });
         } catch (error) {
@@ -101,7 +100,7 @@ export class AuthController {
                 throw new AppError('User not authenticated', 401);
             }
 
-            const updatedUser = await AuthService.updateProfile(req.user._id, req.body);
+            const updatedUser = await AuthService.updateProfile((req.user as any)._id, req.body);
             
             res.json({
                 success: true,
@@ -125,7 +124,7 @@ export class AuthController {
             const data: ChangePasswordRequest = req.body;
             
             await AuthService.changePassword(
-                req.user._id,
+                (req.user as any)._id,
                 data.currentPassword,
                 data.newPassword
             );
@@ -148,7 +147,7 @@ export class AuthController {
                 throw new AppError('User not authenticated', 401);
             }
 
-            await AuthService.deleteAccount(req.user._id);
+            await AuthService.deleteAccount((req.user as any)._id);
             
             // Clear cookies
             clearAuthCookies(res);
@@ -166,9 +165,22 @@ export class AuthController {
      * Google OAuth login
      */
     static async googleAuth(req: Request, res: Response, next: NextFunction) {
-        passport.authenticate('google', {
-            scope: ['profile', 'email']
-        })(req, res, next);
+        try {
+            const token = req.cookies?.accessToken;
+            if (token) {
+                try {
+                    const decoded = AuthService.verifyAccessToken(token);
+                    if (decoded?.id) {
+                        return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+                    }
+                } catch {}
+            }
+            passport.authenticate('google', {
+                scope: ['profile', 'email']
+            })(req, res, next);
+        } catch (error) {
+            next(error);
+        }
     }
 
     /**

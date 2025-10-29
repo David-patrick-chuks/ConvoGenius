@@ -8,37 +8,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Agent } from "@/types/api";
 import { cortexDeskApiClient } from "@/utils/api";
+import { AnalyticsApiClient } from "@/utils/api/analyticsApi";
 import { motion } from "framer-motion";
 import {
-    Bot,
-    CheckCircle,
-    Clock,
-    Edit,
-    MessageCircle,
-    Plus,
-    Rocket,
-    Share2,
-    TrendingUp,
-    Users
+  Bot,
+  CheckCircle,
+  Clock,
+  Edit,
+  MessageCircle,
+  Plus,
+  Rocket,
+  Share2,
+  TrendingUp,
+  Users
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const stats = [
-  { label: "Total Agents", value: "12", icon: Bot, change: "+2 this week" },
-  { label: "Active Conversations", value: "4,295", icon: MessageCircle, change: "+12% from last week" },
-  { label: "Deployments", value: "8", icon: Rocket, change: "+1 this week" },
-  { label: "Total Users", value: "1,247", icon: Users, change: "+5% from last week" },
+const defaultStats = [
+  { label: "Total Agents", value: "0", icon: Bot, change: "" },
+  { label: "Active Conversations", value: "0", icon: MessageCircle, change: "" },
+  { label: "Deployments", value: "0", icon: Rocket, change: "" },
+  { label: "Total Users", value: "-", icon: Users, change: "" },
 ];
 
 export default function DashboardPage() {
   const [createAgentOpen, setCreateAgentOpen] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(defaultStats);
   const router = useRouter();
 
   useEffect(() => {
     loadAgents();
+    loadAnalytics();
   }, []);
 
   const loadAgents = async () => {
@@ -52,6 +55,23 @@ export default function DashboardPage() {
       console.error("Failed to load agents:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      const response = await AnalyticsApiClient.getDashboard('30d');
+      if (response.success && response.data) {
+        const overview = response.data.overview || {};
+        setStats([
+          { label: 'Total Agents', value: String(overview.totalAgents ?? 0), icon: Bot, change: '' },
+          { label: 'Active Conversations', value: String(response.data.conversations?.total ?? 0), icon: MessageCircle, change: '' },
+          { label: 'Deployments', value: String(overview.totalTrainingJobs ?? 0), icon: Rocket, change: '' },
+          { label: 'Total Users', value: '-', icon: Users, change: '' },
+        ]);
+      }
+    } catch (e) {
+      // keep defaults on error
     }
   };
 

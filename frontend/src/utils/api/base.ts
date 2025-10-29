@@ -1,28 +1,23 @@
 import { ApiResponse } from '@/types/api';
 
 export class BaseApiClient {
-  protected static baseUrl = "/api";
-
-  // Helper method to get headers with wallet address
-  protected static getHeaders(walletAddress: string) {
-    return {
-      "Content-Type": "application/json",
-      "walletAddress": walletAddress,
-    };
-  }
+  protected static baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
   // Generic method to handle API calls
   protected static async makeRequest<T>(
     url: string,
     options: RequestInit,
-    walletAddress?: string
+    token?: string
   ): Promise<ApiResponse<T>> {
     try {
-      const headers = walletAddress ? this.getHeaders(walletAddress) : { "Content-Type": "application/json" };
+      const defaultHeaders: Record<string, string> = { };
+      const contentTypeHeader = (options.body instanceof FormData) ? {} : { "Content-Type": "application/json" };
+      const authHeader = token ? { "Authorization": `Bearer ${token}` } : {};
       
       const response = await fetch(`${this.baseUrl}${url}`, {
         ...options,
-        headers: { ...headers, ...options.headers },
+        headers: { ...defaultHeaders, ...contentTypeHeader, ...authHeader, ...(options.headers as any) },
+        credentials: 'include'
       });
 
       if (!response.ok) {

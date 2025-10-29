@@ -1,10 +1,10 @@
-import express, { NextFunction, Request, Response } from 'express';
-import Analytics from '../models/Analytics';
+import express, { Request, Response } from 'express';
+import { protect } from '../middlewares/authMiddleware';
 import Agent from '../models/Agent';
 import ChatMessage from '../models/ChatMessage';
-import TrainJob from '../models/TrainJob';
 import Memory from '../models/Memory';
 import Resource from '../models/Resource';
+import TrainJob from '../models/TrainJob';
 
 const router = express.Router();
 
@@ -88,7 +88,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get('/dashboard', async (req: Request, res: Response) => {
+router.get('/dashboard', protect, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.user as any).id;
     const { period = '30d' } = req.query;
@@ -232,9 +232,11 @@ router.get('/dashboard', async (req: Request, res: Response) => {
     };
 
     res.json(analytics);
+    return;
   } catch (error) {
     console.error('Error fetching dashboard analytics:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard analytics' });
+    return;
   }
 });
 
@@ -271,7 +273,7 @@ router.get('/dashboard', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/agents/:agentId', async (req: Request, res: Response) => {
+router.get('/agents/:agentId', protect, async (req: Request, res: Response): Promise<void> => {
   try {
     const { agentId } = req.params;
     const userId = (req.user as any).id;
@@ -280,7 +282,8 @@ router.get('/agents/:agentId', async (req: Request, res: Response) => {
     // Verify agent belongs to user
     const agent = await Agent.findOne({ _id: agentId, userId });
     if (!agent) {
-      return res.status(404).json({ error: 'Agent not found' });
+      res.status(404).json({ error: 'Agent not found' });
+      return;
     }
 
     // Calculate date range
@@ -378,9 +381,11 @@ router.get('/agents/:agentId', async (req: Request, res: Response) => {
     };
 
     res.json(analytics);
+    return;
   } catch (error) {
     console.error('Error fetching agent analytics:', error);
     res.status(500).json({ error: 'Failed to fetch agent analytics' });
+    return;
   }
 });
 
@@ -409,7 +414,7 @@ router.get('/agents/:agentId', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/conversations', async (req: Request, res: Response) => {
+router.get('/conversations', protect, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.user as any).id;
     const { period = '30d' } = req.query;
@@ -518,14 +523,7 @@ router.get('/conversations', async (req: Request, res: Response) => {
             _id: null,
             avgResponseTime: { $avg: '$metadata.responseTime' },
             minResponseTime: { $min: '$metadata.responseTime' },
-            maxResponseTime: { $max: '$metadata.responseTime' },
-            p95ResponseTime: {
-              $percentile: {
-                input: '$metadata.responseTime',
-                p: [0.95],
-                method: 'approximate'
-              }
-            }
+            maxResponseTime: { $max: '$metadata.responseTime' }
           }
         }
       ])
@@ -542,15 +540,16 @@ router.get('/conversations', async (req: Request, res: Response) => {
       responseTime: responseTimeStats[0] || {
         avgResponseTime: 0,
         minResponseTime: 0,
-        maxResponseTime: 0,
-        p95ResponseTime: [0]
+        maxResponseTime: 0
       }
     };
 
     res.json(analytics);
+    return;
   } catch (error) {
     console.error('Error fetching conversation analytics:', error);
     res.status(500).json({ error: 'Failed to fetch conversation analytics' });
+    return;
   }
 });
 
@@ -571,7 +570,7 @@ router.get('/conversations', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/training', async (req: Request, res: Response) => {
+router.get('/training', protect, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.user as any).id;
 
@@ -638,9 +637,11 @@ router.get('/training', async (req: Request, res: Response) => {
     };
 
     res.json(analytics);
+    return;
   } catch (error) {
     console.error('Error fetching training analytics:', error);
     res.status(500).json({ error: 'Failed to fetch training analytics' });
+    return;
   }
 });
 

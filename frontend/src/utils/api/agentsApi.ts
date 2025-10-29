@@ -2,25 +2,29 @@ import { Agent, ApiResponse, CreateAgentRequest, UpdateAgentRequest } from '@/ty
 import { BaseApiClient } from './base';
 
 export class AgentsApiClient extends BaseApiClient {
-  static async getAgents(): Promise<ApiResponse<Agent[]>> {
-    return this.get<Agent[]>('/agents', '');
+  static async getAgents(token?: string): Promise<ApiResponse<Agent[]>> {
+    return this.makeRequest<Agent[]>('/api/agents', { method: 'GET' }, token);
   }
 
-  static async getAgent(agentId: string): Promise<ApiResponse<Agent>> {
-    return this.get<Agent>(`/agents?id=${agentId}`, '');
+  static async getAgent(id: string, token?: string): Promise<ApiResponse<Agent>> {
+    return this.makeRequest<Agent>(`/api/agents/${id}`, { method: 'GET' }, token);
   }
 
-  static async createAgent(agentData: CreateAgentRequest): Promise<ApiResponse<Agent>> {
-    return this.post<Agent>('/agents', '', agentData);
+  static async createAgent(agentData: CreateAgentRequest, token?: string): Promise<ApiResponse<Agent>> {
+    return this.makeRequest<Agent>('/api/agents', {
+      method: 'POST',
+      body: JSON.stringify(agentData),
+    }, token);
   }
 
-  static async updateAgent(agentData: UpdateAgentRequest): Promise<ApiResponse<Agent>> {
-    return this.put<Agent>('/agents', '', agentData);
+  static async updateAgent(id: string, agentData: Partial<CreateAgentRequest>, token?: string): Promise<ApiResponse<Agent>> {
+    return this.makeRequest<Agent>(`/api/agents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(agentData),
+    }, token);
   }
 
-  static async deleteAgent(agentId: string): Promise<ApiResponse<null>> {
-    return this.makeRequest<null>(`/agents?id=${agentId}`, {
-      method: 'DELETE',
-    });
+  static async deleteAgent(id: string, token?: string): Promise<ApiResponse<null>> {
+    return this.makeRequest<null>(`/api/agents/${id}`, { method: 'DELETE' }, token);
   }
 }

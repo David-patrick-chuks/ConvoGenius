@@ -47,7 +47,7 @@ AnalyticsSchema.index({ date: -1 });
 
 // Virtual for analytics ID
 AnalyticsSchema.virtual('id').get(function() {
-  return this._id.toHexString();
+  return (this as any)._id.toHexString();
 });
 
 // Static method to find analytics by agent

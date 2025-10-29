@@ -1,9 +1,9 @@
 
 import { Request, Response } from 'express';
 import Agent from '../models/Agent';
-import TrainJob from '../models/TrainJob';
-import Memory from '../models/Memory';
 import ChatMessage from '../models/ChatMessage';
+import Memory from '../models/Memory';
+import TrainJob from '../models/TrainJob';
 
 // @desc    Get all agents for a user
 // @route   GET /api/agents
@@ -66,10 +66,10 @@ export const getAgent = async (req: Request, res: Response) => {
             recentConversations
         };
         
-        res.status(200).json(agentWithStats);
+        return res.status(200).json(agentWithStats);
     } catch (error) {
         console.error('Error fetching agent:', error);
-        res.status(500).json({ error: 'Failed to fetch agent' });
+        return res.status(500).json({ error: 'Failed to fetch agent' });
     }
 };
 
@@ -127,10 +127,10 @@ export const createAgent = async (req: Request, res: Response) => {
             status: 'training'
         });
 
-        res.status(201).json(agent);
+        return res.status(201).json(agent);
     } catch (error) {
         console.error('Error creating agent:', error);
-        res.status(500).json({ error: 'Failed to create agent' });
+        return res.status(500).json({ error: 'Failed to create agent' });
     }
 };
 
@@ -158,10 +158,10 @@ export const updateAgent = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Agent not found' });
         }
         
-        res.status(200).json(agent);
+        return res.status(200).json(agent);
     } catch (error) {
         console.error('Error updating agent:', error);
-        res.status(500).json({ error: 'Failed to update agent' });
+        return res.status(500).json({ error: 'Failed to update agent' });
     }
 };
 
@@ -188,10 +188,10 @@ export const deleteAgent = async (req: Request, res: Response) => {
         // Delete the agent
         await Agent.findByIdAndDelete(id);
         
-        res.status(200).json({ message: 'Agent deleted successfully' });
+        return res.status(200).json({ message: 'Agent deleted successfully' });
     } catch (error) {
         console.error('Error deleting agent:', error);
-        res.status(500).json({ error: 'Failed to delete agent' });
+        return res.status(500).json({ error: 'Failed to delete agent' });
     }
 };
 
@@ -216,7 +216,7 @@ export const getAgentTrainingStatus = async (req: Request, res: Response) => {
         // Get memory statistics
         const memoryStats = await Memory.getStats(id);
         
-        res.status(200).json({
+        return res.status(200).json({
             agent: {
                 id: agent._id,
                 name: agent.name,
@@ -232,21 +232,22 @@ export const getAgentTrainingStatus = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Error fetching training status:', error);
-        res.status(500).json({ error: 'Failed to fetch training status' });
+        return res.status(500).json({ error: 'Failed to fetch training status' });
     }
 };
 
 // @desc    Clear agent memory
 // @route   DELETE /api/agents/:id/memory
 // @access  Private
-export const clearAgentMemory = async (req: Request, res: Response) => {
+export const clearAgentMemory = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
         
         // Verify agent exists and belongs to user
         const agent = await Agent.findOne({ _id: id, userId: (req.user as any).id });
         if (!agent) {
-            return res.status(404).json({ error: 'Agent not found' });
+            res.status(404).json({ error: 'Agent not found' });
+            return;
         }
         
         // Delete all memories for this agent
@@ -259,8 +260,10 @@ export const clearAgentMemory = async (req: Request, res: Response) => {
             message: 'Agent memory cleared successfully',
             deletedCount: result.deletedCount
         });
+        return;
     } catch (error) {
         console.error('Error clearing agent memory:', error);
         res.status(500).json({ error: 'Failed to clear agent memory' });
+        return;
     }
 };

@@ -43,11 +43,7 @@ export default function RegisterPage() {
       });
 
       if (response.success && response.data) {
-        // Store token in localStorage (in a real app, you might use a more secure method)
-        localStorage.setItem("authToken", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        
-        // Redirect to dashboard
+        // Cookies are set by backend; no tokens stored client-side
         router.push("/dashboard");
       } else {
         setError(response.error || "Registration failed");

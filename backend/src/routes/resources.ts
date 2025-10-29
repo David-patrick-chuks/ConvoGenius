@@ -53,13 +53,13 @@ const validateResourceRequest = (req: Request, res: Response, next: NextFunction
             error: 'One or more linked agents not found or access denied'
           });
         }
-        next();
+        return next();
       })
       .catch(error => {
-        res.status(500).json({ error: 'Failed to validate linked agents' });
+        return res.status(500).json({ error: 'Failed to validate linked agents' });
       });
   } else {
-    next();
+    return next();
   }
 };
 
@@ -125,10 +125,11 @@ const validateResourceRequest = (req: Request, res: Response, next: NextFunction
  *       500:
  *         description: Internal server error
  */
-router.post('/', upload.single('file'), validateResourceRequest, async (req: Request, res: Response) => {
+router.post('/', upload.single('file'), validateResourceRequest, async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      res.status(400).json({ error: 'No file uploaded' });
+      return;
     }
 
     const { linkedAgents = [] } = req.body;
@@ -189,9 +190,11 @@ router.post('/', upload.single('file'), validateResourceRequest, async (req: Req
     });
 
     res.status(201).json(resource);
+    return;
   } catch (error) {
     console.error('Error uploading resource:', error);
     res.status(500).json({ error: 'Failed to upload resource' });
+    return;
   }
 });
 
@@ -255,7 +258,7 @@ router.post('/', upload.single('file'), validateResourceRequest, async (req: Req
  *       500:
  *         description: Internal server error
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.user as any).id;
     const { agentId, status, type } = req.query;
@@ -270,9 +273,11 @@ router.get('/', async (req: Request, res: Response) => {
       .populate('linkedAgents', 'name');
 
     res.json(resources);
+    return;
   } catch (error) {
     console.error('Error fetching resources:', error);
     res.status(500).json({ error: 'Failed to fetch resources' });
+    return;
   }
 });
 
@@ -302,7 +307,7 @@ router.get('/', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = (req.user as any).id;
@@ -311,13 +316,16 @@ router.get('/:id', async (req: Request, res: Response) => {
       .populate('linkedAgents', 'name');
 
     if (!resource) {
-      return res.status(404).json({ error: 'Resource not found' });
+      res.status(404).json({ error: 'Resource not found' });
+      return;
     }
 
     res.json(resource);
+    return;
   } catch (error) {
     console.error('Error fetching resource:', error);
     res.status(500).json({ error: 'Failed to fetch resource' });
+    return;
   }
 });
 
@@ -359,7 +367,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = (req.user as any).id;
@@ -369,9 +377,10 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (linkedAgents && Array.isArray(linkedAgents)) {
       const agents = await Agent.find({ _id: { $in: linkedAgents }, userId });
       if (agents.length !== linkedAgents.length) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'One or more linked agents not found or access denied'
         });
+        return;
       }
     }
 
@@ -382,13 +391,16 @@ router.put('/:id', async (req: Request, res: Response) => {
     ).populate('linkedAgents', 'name');
 
     if (!resource) {
-      return res.status(404).json({ error: 'Resource not found' });
+      res.status(404).json({ error: 'Resource not found' });
+      return;
     }
 
     res.json(resource);
+    return;
   } catch (error) {
     console.error('Error updating resource:', error);
     res.status(500).json({ error: 'Failed to update resource' });
+    return;
   }
 });
 
@@ -418,14 +430,15 @@ router.put('/:id', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = (req.user as any).id;
 
     const resource = await Resource.findOne({ _id: id, userId });
     if (!resource) {
-      return res.status(404).json({ error: 'Resource not found' });
+      res.status(404).json({ error: 'Resource not found' });
+      return;
     }
 
     // Delete the physical file
@@ -441,9 +454,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
     await Resource.findByIdAndDelete(id);
 
     res.json({ message: 'Resource deleted successfully' });
+    return;
   } catch (error) {
     console.error('Error deleting resource:', error);
     res.status(500).json({ error: 'Failed to delete resource' });
+    return;
   }
 });
 
@@ -478,24 +493,28 @@ router.delete('/:id', async (req: Request, res: Response) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/:id/download', async (req: Request, res: Response) => {
+router.get('/:id/download', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = (req.user as any).id;
 
     const resource = await Resource.findOne({ _id: id, userId });
     if (!resource) {
-      return res.status(404).json({ error: 'Resource not found' });
+      res.status(404).json({ error: 'Resource not found' });
+      return;
     }
 
     if (!fs.existsSync(resource.path)) {
-      return res.status(404).json({ error: 'File not found on disk' });
+      res.status(404).json({ error: 'File not found on disk' });
+      return;
     }
 
     res.download(resource.path, resource.originalName);
+    return;
   } catch (error) {
     console.error('Error downloading resource:', error);
     res.status(500).json({ error: 'Failed to download resource' });
+    return;
   }
 });
 

@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import Analytics from '../models/Analytics';
 import logger from '../utils/logger';
 
-export const getAnalytics = async (req: Request, res: Response) => {
+export const getAnalytics = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req.user as any).id;
         // Fetch the latest analytics data for the user
@@ -11,17 +11,20 @@ export const getAnalytics = async (req: Request, res: Response) => {
 
         if (!analyticsData) {
             // If no analytics data exists, return a default empty set
-            return res.status(200).json({
+            res.status(200).json({
                 totalAgents: 0,
                 activeDeployments: 0,
                 messagesProcessed: 0,
                 platformUsage: {},
             });
+            return;
         }
 
         res.status(200).json(analyticsData);
+        return;
     } catch (error) {
         logger.error('Error fetching analytics:', error);
         res.status(500).json({ message: 'Server error' });
+        return;
     }
 };

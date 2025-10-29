@@ -1,5 +1,5 @@
 
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { AppError } from '../types';
 
@@ -25,17 +25,40 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Verify token
-        const decoded = AuthService.verifyAccessToken(token);
-        
-        // Get user from database
-        const user = await AuthService.getUserById(decoded.id);
-        if (!user) {
-            throw new AppError('User not found.', 401);
+        try {
+            const decoded = AuthService.verifyAccessToken(token);
+            const user = await AuthService.getUserById(decoded.id);
+            if (!user) {
+                throw new AppError('User not found.', 401);
+            }
+            req.user = user;
+            return next();
+        } catch (verifyErr) {
+            // Attempt silent refresh using refreshToken cookie
+            const rt = req.cookies?.refreshToken;
+            if (!rt) {
+                throw verifyErr;
+            }
+            try {
+                const { accessToken } = await AuthService.refreshToken(rt);
+                // set new access cookie
+                res.cookie('accessToken', accessToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                    maxAge: 15 * 60 * 1000
+                });
+                const decoded = AuthService.verifyAccessToken(accessToken);
+                const user = await AuthService.getUserById(decoded.id);
+                if (!user) {
+                    throw new AppError('User not found.', 401);
+                }
+                req.user = user;
+                return next();
+            } catch (refreshErr) {
+                throw new AppError('Access denied. Please login again.', 401);
+            }
         }
-
-        // Attach user to request
-        req.user = user;
-        next();
     } catch (error) {
         next(error);
     }

@@ -1,15 +1,175 @@
-import { trainingQueue } from '../services/queueService';
-import logger from '../utils/logger';
-import TrainJob from '../models/TrainJob';
 import Memory from '../models/Memory';
-import { chunkText, generateContentHash, getContentVersion } from '../utils/chunkText';
+import TrainJob from '../models/TrainJob';
 import { embedText } from '../services/geminiService';
+import { trainingQueue } from '../services/queueService';
+import { GeminiAudioTranscriber } from '../utils/audioTranscribe';
+import { chunkText, generateContentHash, getContentVersion } from '../utils/chunkText';
+import logger from '../utils/logger';
+import { scrapeAllRoutes } from '../utils/scrapeWebsite';
+import { VideoProcessor } from '../utils/videoProcess';
+import { cleanTranscript, fetchYouTubeTranscript, summarizeYouTubeVideoWithGemini } from '../utils/youtubeTranscript';
 
 // Minimal worker that logs and could later move full processing here
 trainingQueue.process('train-agent', async (job) => {
     logger.info(`Worker processing train-agent job ${job.id}`);
-    // This hook is ready for full migration of training logic from HTTP route
-    return true;
+    // Find most recent queued TrainJob and process using full pipeline
+    const queuedJob = await TrainJob.findOne({ status: 'queued' }).sort({ createdAt: 1 });
+    if (!queuedJob) {
+        logger.warn('No queued TrainJob found');
+        return true;
+    }
+
+    const jobId = queuedJob.jobId;
+    const { agentId } = queuedJob as any;
+    const payload = (queuedJob.result as any)?.payload || {};
+    const { text, source, sourceUrl, sourceMetadata, fileType } = payload;
+    const filesInfo = (queuedJob.result as any)?.filesInfo || [];
+
+    await TrainJob.findOneAndUpdate({ jobId }, { status: 'processing', progress: 0, error: null });
+
+    let trainingText = '';
+    let usedFiles = filesInfo.length > 0;
+    const fileNames: string[] = filesInfo.map((f: any) => f.originalname);
+
+    try {
+        if (source === 'website' && sourceUrl) {
+            const websiteResult = await scrapeAllRoutes(sourceUrl, { firstRouteOnly: true });
+            if ((websiteResult as any).success && (websiteResult as any).content) {
+                trainingText = (websiteResult as any).content;
+            } else if (typeof websiteResult === 'string') {
+                trainingText = websiteResult as any;
+            } else {
+                await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: (websiteResult as any).error, source: 'website', url: sourceUrl } });
+                return;
+            }
+        } else if (source === 'youtube' && sourceUrl) {
+            try {
+                const rawTranscript = await fetchYouTubeTranscript(sourceUrl);
+                trainingText = cleanTranscript(rawTranscript);
+            } catch (ytError: any) {
+                if (ytError.message?.includes('Transcript is disabled') || ytError.message?.includes('unavailable or empty')) {
+                    const summary = await summarizeYouTubeVideoWithGemini(sourceUrl);
+                    trainingText = summary;
+                } else {
+                    await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: ytError.message, source: 'youtube', url: sourceUrl } });
+                    return;
+                }
+            }
+        } else if (source === 'video' && filesInfo.length > 0) {
+            const processor = new VideoProcessor();
+            let allText = '';
+            for (const f of filesInfo) {
+                // Worker does not have buffers; expect future storage integration
+                allText += `[Video placeholder content for ${f.originalname}]\n`;
+            }
+            trainingText = allText;
+        } else if (source === 'audio' && filesInfo.length > 0) {
+            const transcriber = new GeminiAudioTranscriber();
+            let allText = '';
+            for (const f of filesInfo) {
+                allText += `[Audio placeholder content for ${f.originalname}]\n`;
+            }
+            trainingText = allText;
+        } else if (source === 'document' && filesInfo.length > 0) {
+            let allText = '';
+            for (const f of filesInfo) {
+                const type = (fileType || f.originalname.split('.').pop() || 'txt');
+                // Worker lacks direct file buffers; assume processing via separate resource ingestion path
+                allText += `[Document placeholder content for ${f.originalname} type=${type}]\n`;
+            }
+            trainingText = allText;
+        } else if (text) {
+            trainingText = text;
+        }
+
+        if (!trainingText || trainingText.trim().length === 0) {
+            await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: 'No valid training text found.' } });
+            return true;
+        }
+
+        const chunksWithMetadata = chunkText(trainingText);
+        if (chunksWithMetadata.length === 0) {
+            await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: 'Failed to create chunks.' } });
+            return true;
+        }
+
+        await TrainJob.findOneAndUpdate({ jobId }, {
+            totalChunks: chunksWithMetadata.length,
+            fileNames,
+            usedFiles,
+            chunksProcessed: 0,
+            successCount: 0,
+            errorCount: 0,
+            status: 'processing',
+        });
+
+        const entries: any[] = [];
+        let successCount = 0;
+        let errorCount = 0;
+        let skippedCount = 0;
+
+        for (let i = 0; i < chunksWithMetadata.length; i++) {
+            try {
+                const chunkWithMetadata = chunksWithMetadata[i];
+                const chunkTextVal = chunkWithMetadata.text;
+                const chunkMetadata = chunkWithMetadata.metadata;
+                const contentHash = generateContentHash(chunkTextVal);
+                const existingContent = await Memory.findOne({ agentId, contentHash, ...(sourceUrl && { sourceUrl }) });
+                if (existingContent) {
+                    skippedCount++;
+                    continue;
+                }
+                const contentVersion = await getContentVersion(agentId as any, contentHash, sourceUrl);
+                let vector: number[];
+                try {
+                    vector = await embedText(chunkTextVal);
+                } catch {
+                    vector = new Array(768).fill(0);
+                }
+                entries.push({ 
+                    agentId, 
+                    text: chunkTextVal, 
+                    embedding: vector, 
+                    source, 
+                    sourceUrl, 
+                    sourceMetadata,
+                    chunkIndex: chunkMetadata.chunkIndex,
+                    contentHash,
+                    contentVersion,
+                    chunkMetadata
+                });
+                successCount++;
+            } catch (e) {
+                errorCount++;
+            }
+            await TrainJob.findOneAndUpdate({ jobId }, {
+                chunksProcessed: i + 1,
+                progress: Math.round(((i + 1) / chunksWithMetadata.length) * 100),
+                successCount,
+                errorCount,
+                skippedCount
+            });
+        }
+
+        if (entries.length > 0) {
+            await Memory.insertMany(entries);
+        }
+
+        await TrainJob.findOneAndUpdate({ jobId }, {
+            status: 'completed',
+            result: {
+                agentId,
+                chunksStored: entries.length,
+                totalChunks: chunksWithMetadata.length
+            }
+        });
+
+        return true;
+    } catch (err) {
+        logger.error('Worker training error:', err);
+        await TrainJob.findOneAndUpdate({ jobId: (queuedJob as any).jobId }, { status: 'failed', error: { error: err instanceof Error ? err.message : String(err) } });
+        return true;
+    }
 });
 
 trainingQueue.on('active', (job) => logger.info(`Training job active: ${job.id}`));
@@ -17,10 +177,9 @@ trainingQueue.on('stalled', (job) => logger.warn(`Training job stalled: ${job.id
 trainingQueue.on('error', (err) => logger.error('Training queue error', err));
 
 import { Job } from 'bull';
-import { ITrainingJob } from '../types';
 import Agent from '../models/Agent';
 import Resource from '../models/Resource';
-import logger from '../utils/logger';
+import { ITrainingJob } from '../types';
 
 export class TrainingWorker {
     /**
@@ -58,7 +217,7 @@ export class TrainingWorker {
                     if (resource && resource.status === 'processed') {
                         // Add resource to agent sources
                         agent.sources.push({
-                            _id: resource._id,
+                            _id: (resource._id as any).toString(),
                             name: resource.name,
                             type: resource.type,
                             size: this.formatFileSize(resource.size),

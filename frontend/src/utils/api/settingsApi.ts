@@ -1,38 +1,30 @@
-import { ApiKey, ApiResponse, ChangePasswordRequest, UserSettings } from '@/types/api';
+import { ApiResponse, UserSettings } from '@/types/api';
 import { BaseApiClient } from './base';
 
 export class SettingsApiClient extends BaseApiClient {
-  static async getUserSettings(): Promise<ApiResponse<UserSettings>> {
-    return this.get<UserSettings>('/settings?type=settings', '');
+  static async getUserSettings(token?: string): Promise<ApiResponse<UserSettings>> {
+    return this.makeRequest<UserSettings>('/api/settings', { method: 'GET' }, token);
   }
 
-  static async updateUserSettings(settings: Partial<UserSettings>): Promise<ApiResponse<UserSettings>> {
-    return this.post<UserSettings>('/settings?type=settings', '', settings);
+  static async updateUserSettings(settings: Partial<UserSettings>, token?: string): Promise<ApiResponse<UserSettings>> {
+    return this.makeRequest<UserSettings>('/api/settings', { method: 'PUT', body: JSON.stringify(settings) }, token);
   }
 
-  static async getApiKeys(): Promise<ApiResponse<ApiKey[]>> {
-    return this.get<ApiKey[]>('/settings?type=apikeys', '');
+  static async setup2FA() {
+    return this.makeRequest<{ otpauthUrl: string; base32: string }>('/api/settings/2fa/setup', { method: 'POST' });
   }
 
-  static async addApiKey(name: string, key: string): Promise<ApiResponse<ApiKey>> {
-    return this.post<ApiKey>('/settings?type=apikey', '', { name, key });
+  static async enable2FA(token: string) {
+    return this.makeRequest<{ message: string }>(
+      '/api/settings/2fa/enable',
+      { method: 'POST', body: JSON.stringify({ token }) }
+    );
   }
 
-  static async updateApiKey(apiKeyId: string, apiKeyData: Partial<ApiKey>): Promise<ApiResponse<ApiKey>> {
-    return this.put<ApiKey>(`/settings?type=apikey&id=${apiKeyId}`, '', apiKeyData);
-  }
-
-  static async deleteApiKey(apiKeyId: string): Promise<ApiResponse<null>> {
-    return this.makeRequest<null>(`/settings?type=apikey&id=${apiKeyId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  static async getApiUsage(): Promise<ApiResponse<any>> {
-    return this.get<any>('/settings?type=usage', '');
-  }
-
-  static async changePassword(passwordData: ChangePasswordRequest): Promise<ApiResponse<null>> {
-    return this.post<null>('/settings?type=changepassword', '', passwordData);
+  static async disable2FA() {
+    return this.makeRequest<{ message: string }>(
+      '/api/settings/2fa/disable',
+      { method: 'POST' }
+    );
   }
 }

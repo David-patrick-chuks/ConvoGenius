@@ -34,7 +34,7 @@ export class DiscordConnector implements IConnector {
         // For now, we'll consider it deployed if the token is present.
     }
 
-    async handleWebhook(payload: any, deployment: any, headers?: Record<string, any>, rawBody?: string): Promise<void> {
+    async handleWebhook(payload: any, deployment: any, headers?: Record<string, any>, rawBody?: string): Promise<any> {
         logger.info('Received Discord webhook payload:', payload);
 
         // Verify Discord signature for interactions
@@ -54,24 +54,32 @@ export class DiscordConnector implements IConnector {
         }
 
         try {
-            // Assuming the payload is a message from a Discord bot webhook
-            const message = payload.data?.options?.[0]?.value || payload.data?.name || payload.content; // best-effort
-            const channelId = payload.channel_id || payload.data?.channel_id; // For slash commands or regular messages
+            // PING
+            if (payload.type === 1) {
+                return { type: 1 };
+            }
+            // APPLICATION_COMMAND (slash command)
+            if (payload.type === 2) {
+                const messageText = payload.data?.options?.[0]?.value || payload.data?.name || '';
+                const aiResponse = await AIService.generateResponse(messageText);
+                return { type: 4, data: { content: aiResponse } };
+            }
+
+            // Fallback to posting via bot
+            const message = payload.data?.options?.[0]?.value || payload.data?.name || payload.content;
+            const channelId = payload.channel_id || payload.data?.channel_id;
             const userId = payload.member?.user?.id || payload.user?.id;
 
             if (!message || !channelId || !userId) {
                 logger.warn('Invalid Discord webhook payload: Missing message, channelId, or userId.', payload);
-                return; // Nothing to process
+                return;
             }
 
-            // Generate AI response
             const aiResponse = await AIService.generateResponse(message);
-
-            // Send response back to Discord
             if (this.client && this.client.isReady()) {
                 const channel = await this.client.channels.fetch(channelId);
-                if (channel?.isTextBased()) {
-                    await channel.send(aiResponse);
+                if (channel?.isTextBased() && 'send' in channel) {
+                    await (channel as any).send(aiResponse);
                     logger.info(`Sent Discord response to channel ${channelId}: ${aiResponse}`);
                 }
             } else {

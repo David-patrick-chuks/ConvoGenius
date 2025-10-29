@@ -1,11 +1,11 @@
 import express, { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import Agent from '../models/Agent';
 import Memory, { IMemory } from '../models/Memory';
 import TrainJob from '../models/TrainJob';
-import { TrainingQueueService } from '../services/queueService';
-import Agent from '../models/Agent';
 import { embedText } from '../services/geminiService';
+import { TrainingQueueService } from '../services/queueService';
 import { GeminiAudioTranscriber } from '../utils/audioTranscribe';
 import { chunkText, generateContentHash, getContentVersion } from '../utils/chunkText';
 import { parseFile } from '../utils/parseFile';
@@ -241,7 +241,7 @@ async function processTrainingJob(jobId: string, jobData: any) {
         if (typeof parsed === 'string') {
           allText += parsed + '\n';
         } else {
-          await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: parsed.error, source: parsed.source, file: files[i].originalname } });
+          await TrainJob.findOneAndUpdate({ jobId }, { status: 'failed', error: { error: parsed.error, file: files[i].originalname } });
           return;
         }
       }
@@ -560,7 +560,7 @@ async function processTrainingJob(jobId: string, jobData: any) {
  *                 method:
  *                   type: string
  */
-router.post('/', upload.array('files', SECURITY_CONFIG.MAX_FILES_PER_REQUEST), validateTrainRequest, async (req: Request, res: Response) => {
+router.post('/', upload.array('files', SECURITY_CONFIG.MAX_FILES_PER_REQUEST), validateTrainRequest, async (req: Request, res: Response): Promise<void> => {
   try {
     const { agentId, text, source = 'document', sourceUrl, sourceMetadata = {}, fileType } = req.body;
     const files = (req as any).files && Array.isArray((req as any).files) ? (req as any).files : [];
@@ -569,7 +569,8 @@ router.post('/', upload.array('files', SECURITY_CONFIG.MAX_FILES_PER_REQUEST), v
     // Verify agent exists and belongs to user
     const agent = await Agent.findOne({ _id: agentId, userId: (req.user as any).id });
     if (!agent) {
-      return res.status(404).json({ error: 'Agent not found or access denied' });
+      res.status(404).json({ error: 'Agent not found or access denied' });
+      return;
     }
     
     await TrainJob.create({
@@ -589,27 +590,31 @@ router.post('/', upload.array('files', SECURITY_CONFIG.MAX_FILES_PER_REQUEST), v
       updatedAt: new Date()
     });
     
-    // Enqueue training job in Bull
+    // Enqueue training job in Bull with full payload
     await TrainingQueueService.addTrainingJob({
       agentId,
       userId: (req.user as any).id,
       resources: [],
-      priority: 'normal'
-    });
-    setImmediate(() => processTrainingJob(jobId, { agentId, text, source, sourceUrl, sourceMetadata, fileType, files }));
-    res.json({ jobId, status: 'queued', message: 'Training started. Poll /api/train/status/:jobId for progress.' });
+      priority: 'normal',
+    } as any);
+    // Store payload on TrainJob for worker to pick up
+    await TrainJob.findOneAndUpdate({ jobId }, { result: { payload: { text, source, sourceUrl, sourceMetadata, fileType }, filesInfo: files.map((f: any) => ({ originalname: f.originalname, mimetype: f.mimetype, size: f.size })) } });
+    res.json({ jobId, status: 'queued', message: 'Training queued. Worker will process asynchronously.' });
+    return;
   } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to start training job', details: error instanceof Error ? error.message : String(error) });
+    return;
   }
 });
 
 // GET /api/train/status/:jobId (DB version)
-router.get('/status/:jobId', async (req: Request, res: Response) => {
+router.get('/status/:jobId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
     const job = await TrainJob.findOne({ jobId, userId: (req.user as any).id });
     if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
+      res.status(404).json({ error: 'Job not found' });
+      return;
     }
     res.json({
       jobId: job.jobId,
@@ -626,41 +631,46 @@ router.get('/status/:jobId', async (req: Request, res: Response) => {
       errorCount: job.errorCount,
       skippedCount: job.skippedCount
     });
+    return;
   } catch (error: unknown) {
     console.error('Error fetching training job status:', error);
     res.status(500).json({ 
       error: 'Failed to fetch training job status',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 
 // GET /api/train/jobs - Get all training jobs for user
-router.get('/jobs', async (req: Request, res: Response) => {
+router.get('/jobs', async (req: Request, res: Response): Promise<void> => {
   try {
     const jobs = await TrainJob.find({ userId: (req.user as any).id })
       .sort({ createdAt: -1 })
       .limit(50);
     
     res.json(jobs);
+    return;
   } catch (error: unknown) {
     console.error('Error fetching training jobs:', error);
     res.status(500).json({ 
       error: 'Failed to fetch training jobs',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 
 // GET /api/train/jobs/:agentId - Get training jobs for specific agent
-router.get('/jobs/:agentId', async (req: Request, res: Response) => {
+router.get('/jobs/:agentId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { agentId } = req.params;
     
     // Verify agent belongs to user
     const agent = await Agent.findOne({ _id: agentId, userId: (req.user as any).id });
     if (!agent) {
-      return res.status(404).json({ error: 'Agent not found or access denied' });
+      res.status(404).json({ error: 'Agent not found or access denied' });
+      return;
     }
     
     const jobs = await TrainJob.find({ agentId, userId: (req.user as any).id })
@@ -668,12 +678,14 @@ router.get('/jobs/:agentId', async (req: Request, res: Response) => {
       .limit(20);
     
     res.json(jobs);
+    return;
   } catch (error: unknown) {
     console.error('Error fetching agent training jobs:', error);
     res.status(500).json({ 
       error: 'Failed to fetch agent training jobs',
       details: error instanceof Error ? error.message : String(error)
     });
+    return;
   }
 });
 

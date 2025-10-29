@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IMemory extends Document {
   agentId: string;
@@ -53,7 +53,7 @@ MemorySchema.index({ agentId: 1, createdAt: -1 });
 
 // Virtual for memory ID
 MemorySchema.virtual('id').get(function() {
-  return this._id.toHexString();
+  return (this as any)._id.toHexString();
 });
 
 // Static method to find memories by agent
@@ -108,4 +108,9 @@ MemorySchema.statics.getStats = function(agentId: string) {
   ]);
 };
 
-export default mongoose.model<IMemory>('Memory', MemorySchema);
+interface IMemoryModel extends Model<IMemory> {
+  findSimilar(agentId: string, embedding: number[], limit?: number): Promise<any[]>;
+  getStats(agentId: string): Promise<any[]>;
+}
+
+export default mongoose.model<IMemory, IMemoryModel>('Memory', MemorySchema);
