@@ -20,8 +20,7 @@ import {
     MessageCircle,
     Rocket,
     Send,
-    Settings,
-    Share2
+    Settings
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -347,7 +346,7 @@ export default function AgentChatPage() {
                 Edit Configuration
               </Button>
 
-              <Button variant="outline" className="w-full rounded-xl border-white/10 text-gray-200 hover:bg_white/10">
+              <Button variant="outline" className="w-full rounded-xl border-white/10 text-gray-200 hover:bg-white/10">
                 <Settings className="w-4 h-4 mr-2" />
                 Agent Settings
               </Button>
@@ -359,23 +358,44 @@ export default function AgentChatPage() {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Input
-                      value="https://cortexdesk.com/chat/agent-123"
+                      value={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/public/agent/${agentId}`}
                       readOnly
                       className="text-xs rounded-xl bg-white/5 border-white/10 text-gray-100"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard("https://cortexdesk.com/chat/agent-123")}
+                      onClick={() => copyToClipboard(`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/public/agent/${agentId}`)}
                       className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10"
                     >
                       {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
-                  <Button variant="outline" className="w-full rounded-xl border-white/10 text-gray-200 hover:bg-white/10">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Generate Share Link
-                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-medium text-white mb-3">Embed on Website</h4>
+                <p className="text-xs text-gray-400 mb-2">Paste this before </p>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      value={`<script src=\"${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/embed/agent/${agentId}.js\" data-position=\"right\" data-theme=\"dark\" data-title=\"Chat\" data-primary-color=\"#2563eb\" data-bubble-color=\"#2563eb\"></script>`}
+                      readOnly
+                      className="text-xs rounded-xl bg-white/5 border-white/10 text-gray-100"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(`<script src=\"${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/embed/agent/${agentId}.js\" data-position=\"right\" data-theme=\"dark\" data-title=\"Chat\" data-primary-color=\"#2563eb\" data-bubble-color=\"#2563eb\"></script>`)}
+                      className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10"
+                    >
+                      {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">Customize with data-position, data-theme, data-title, data-primary-color, data-bubble-color.</p>
                 </div>
               </div>
 

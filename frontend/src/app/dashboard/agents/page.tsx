@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { cortexDeskApiClient } from "@/utils/api";
-import { Agent } from "@/types/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, MessageCircle, Rocket } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Agent } from "@/types/api";
+import { cortexDeskApiClient } from "@/utils/api";
+import { Bot, CheckCircle, Copy, MessageCircle, Rocket } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function AgentsIndexPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -26,6 +29,23 @@ export default function AgentsIndexPage() {
       }
     })();
   }, []);
+
+  const copyToClipboard = (text: string, agentId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(agentId);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getShareLink = (agentId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return `${origin}/public/agent/${agentId}`;
+  };
+
+  const getEmbedCode = (agentId: string) => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    return `<script src="${backendUrl}/embed/agent/${agentId}.js" data-position="right" data-theme="dark" data-title="Chat" data-primary-color="#2563eb" data-bubble-color="#2563eb"></script>`;
+  };
 
   return (
     <DashboardLayout>
@@ -65,6 +85,47 @@ export default function AgentsIndexPage() {
                     <span>Last active: {agent.lastActive || "Never"}</span>
                     <span>{agent.conversations?.toLocaleString?.() || 0} conversations</span>
                   </div>
+                  
+                  {/* Share Link */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-400">Share Link</label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={getShareLink(agent._id)}
+                        readOnly
+                        className="text-xs rounded-xl bg-white/5 border-white/10 text-gray-100 h-8"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(getShareLink(agent._id), `share-${agent._id}`)}
+                        className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10 h-8 px-2"
+                      >
+                        {copiedId === `share-${agent._id}` ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Embed Code */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-400">Embed Code</label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={getEmbedCode(agent._id)}
+                        readOnly
+                        className="text-xs rounded-xl bg-white/5 border-white/10 text-gray-100 h-8"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(getEmbedCode(agent._id), `embed-${agent._id}`)}
+                        className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10 h-8 px-2"
+                      >
+                        {copiedId === `embed-${agent._id}` ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="flex space-x-2">
                     <Button size="sm" variant="outline" className="flex-1 rounded-xl border-white/10 text-gray-200 hover:bg-white/10" onClick={() => router.push(`/dashboard/agents/${agent._id}`)}>
                       <MessageCircle className="w-4 h-4 mr-2"/> Chat

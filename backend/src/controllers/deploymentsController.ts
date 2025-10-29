@@ -8,9 +8,45 @@ import logger from '../utils/logger'; // Import the logger
 // @desc    Get all deployments for an agent
 // @route   GET /api/deployments
 // @access  Private
-export const getDeployments = async (req: Request, res: Response) => {
-    const deployments = await Deployment.find({ agent: req.query.agentId });
-    res.status(200).json(deployments);
+export const getDeployments = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req.user as any).id;
+        const deployments = await Deployment.find({ userId: userId, ...(req.query.agentId ? { agent: req.query.agentId } : {}) });
+        res.status(200).json(deployments);
+        return;
+    } catch (error) {
+        logger.error('Error fetching deployments:', error);
+        res.status(500).json({ message: 'Server error' });
+        return;
+    }
+};
+
+// @desc    Get connected accounts summary
+// @route   GET /api/deployments/summary
+// @access  Private
+export const getDeploymentsSummary = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req.user as any).id;
+        const deployments = await Deployment.find({ userId, status: 'active' });
+        const connectedCount = deployments.length;
+        
+        // Group by platform
+        const platformCounts: Record<string, number> = {};
+        deployments.forEach(dep => {
+            platformCounts[dep.platform] = (platformCounts[dep.platform] || 0) + 1;
+        });
+
+        res.status(200).json({
+            connectedCount,
+            platformCounts,
+            totalDeployments: deployments.length
+        });
+        return;
+    } catch (error) {
+        logger.error('Error fetching deployments summary:', error);
+        res.status(500).json({ message: 'Server error' });
+        return;
+    }
 };
 
 // @desc    Create a deployment

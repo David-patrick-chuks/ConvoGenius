@@ -1,37 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { 
-  Globe, 
-  MessageCircle, 
-  Rocket, 
-  Twitter, 
-  FileText, 
-  StickyNote, 
-  Mail,
-  CheckCircle,
-  ExternalLink,
-  Copy,
-  Settings,
-  Loader2
-} from "lucide-react";
-import { motion } from "framer-motion";
-import DashboardLayout from "@/components/DashboardLayout";
-import { cortexDeskApiClient } from "@/utils/api";
 import { Deployment } from "@/types/api";
+import { cortexDeskApiClient } from "@/utils/api";
+import { DeploymentsSummary } from "@/utils/api/deploymentsApi";
+import { motion } from "framer-motion";
+import {
+  CheckCircle,
+  Copy,
+  ExternalLink,
+  FileText,
+  Globe,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Rocket,
+  Settings,
+  StickyNote,
+  Twitter
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const deploymentPlatforms = [
   {
@@ -105,7 +107,9 @@ export default function DeploymentCenter() {
   const [deploymentModalOpen, setDeploymentModalOpen] = useState(false);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deploying, setDeploying] = useState(false);
+  const [summary, setSummary] = useState<DeploymentsSummary | null>(null);
   const [formData, setFormData] = useState({
     botToken: "",
     workspaceId: "",
@@ -117,17 +121,34 @@ export default function DeploymentCenter() {
 
   useEffect(() => {
     loadDeployments();
+    loadSummary();
   }, []);
+
+  const loadSummary = async () => {
+    try {
+      const response = await cortexDeskApiClient.deployments.getDeploymentsSummary();
+      if (response.success && response.data) {
+        setSummary(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load summary:", error);
+    }
+  };
 
   const loadDeployments = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await cortexDeskApiClient.deployments.getDeployments();
       if (response.success && response.data) {
         setDeployments(response.data);
+      } else {
+        setLoadError(response.error || 'Failed to fetch deployments');
+        toast.error(response.error || 'Failed to fetch deployments');
       }
     } catch (error) {
-      console.error("Failed to load deployments:", error);
+      setLoadError('Failed to load deployments');
+      toast.error('Failed to load deployments');
     } finally {
       setLoading(false);
     }
@@ -152,6 +173,8 @@ export default function DeploymentCenter() {
       if (response.success && response.data) {
         setDeployments(prev => [...prev, response.data!]);
         setDeploymentModalOpen(false);
+        toast.success('Deployment created');
+        loadSummary(); // Refresh summary
         setFormData({
           botToken: "",
           workspaceId: "",
@@ -299,15 +322,15 @@ export default function DeploymentCenter() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-black">Deployment Center</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-white">Deployment Center</h1>
+            <p className="text-gray-400 mt-2">
               Deploy your AI agents across multiple platforms and channels
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant="outline" className="border-2">
+            <Badge variant="outline" className="border border-white/10 text-gray-200">
               <CheckCircle className="w-3 h-3 mr-1" />
-              2 Connected
+              {summary?.connectedCount || 0} Connected
             </Badge>
           </div>
         </div>
@@ -323,7 +346,7 @@ export default function DeploymentCenter() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className={`border-2 hover:border-primary/20 transition-all hover:shadow-lg cursor-pointer ${
+                <Card className={`backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer ${
                   platform.connected ? "ring-2 ring-green-200" : ""
                 }`}>
                   <CardHeader className="pb-4">
@@ -332,14 +355,14 @@ export default function DeploymentCenter() {
                         <Icon className="w-6 h-6" />
                       </div>
                       {platform.connected && (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className="bg-green-500/20 text-green-300 border-white/10">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Connected
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-lg text-black">{platform.name}</CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
+                    <CardTitle className="text-lg text-white">{platform.name}</CardTitle>
+                    <CardDescription className="text-sm text-gray-400">
                       {platform.description}
                     </CardDescription>
                   </CardHeader>
@@ -350,7 +373,7 @@ export default function DeploymentCenter() {
                         <div className="flex space-x-2">
                           <Button 
                             variant="outline" 
-                            className="flex-1 border-2 rounded-xl"
+                            className="flex-1 border border-white/10 text-gray-200 rounded-xl hover:bg-white/10"
                             onClick={() => handlePlatformClick(platform.id)}
                           >
                             <Settings className="w-4 h-4 mr-2" />
@@ -359,14 +382,14 @@ export default function DeploymentCenter() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className="border-2 rounded-xl"
+                            className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (
                         <Button 
-                          className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                           onClick={() => handlePlatformClick(platform.id)}
                         >
                           <Rocket className="w-4 h-4 mr-2" />
@@ -382,9 +405,13 @@ export default function DeploymentCenter() {
         </div>
 
         {/* Connected Platforms Summary */}
-        {deployments.length > 0 && (
+        {(!loading && deployments.length === 0) ? (
+          <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
+            <CardContent className="p-8 text-center text-gray-300">No deployments yet. Connect a platform to get started.</CardContent>
+          </Card>
+        ) : (
           <div>
-            <h2 className="text-2xl font-bold text-black mb-6">Active Deployments</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Active Deployments</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {deployments.map((deployment) => {
                 const platform = deploymentPlatforms.find(p => p.id === deployment.platform);
@@ -392,7 +419,7 @@ export default function DeploymentCenter() {
                 
                 const Icon = platform.icon;
                 return (
-                  <Card key={deployment.id} className="border-2">
+                  <Card key={deployment.id} className="backdrop-blur-xl bg-white/5 border border-white/10">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -400,30 +427,30 @@ export default function DeploymentCenter() {
                             <Icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="font-medium text-black">{platform.name}</h3>
-                            <p className="text-sm text-gray-600">
+                            <h3 className="font-medium text-white">{platform.name}</h3>
+                            <p className="text-sm text-gray-400">
                               {deployment.status === "active" ? "Active deployment" : "Inactive deployment"}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className={`text-sm font-medium ${
-                            deployment.status === "active" ? "text-green-600" : "text-gray-600"
+                            deployment.status === "active" ? "text-emerald-300" : "text-gray-400"
                           }`}>
                             {deployment.status === "active" ? "Live" : "Inactive"}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-400">
                             {deployment.stats.totalChats} chats
                           </p>
                         </div>
                       </div>
                       
                       <div className="mt-4 flex space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1 border-2 rounded-xl">
+                        <Button variant="outline" size="sm" className="flex-1 border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
                           <Settings className="w-4 h-4 mr-2" />
                           Configure
                         </Button>
-                        <Button variant="outline" size="sm" className="border-2 rounded-xl">
+                        <Button variant="outline" size="sm" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       </div>
@@ -457,13 +484,13 @@ export default function DeploymentCenter() {
             <Button
               variant="outline"
               onClick={() => setDeploymentModalOpen(false)}
-              className="border-2 rounded-xl"
+              className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDeploy}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
               disabled={deploying}
             >
               {deploying ? (
@@ -478,6 +505,24 @@ export default function DeploymentCenter() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Embed Utility */}
+      <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Embed Widget</CardTitle>
+          <CardDescription className="text-gray-400">Copy this code to embed the floating chat widget on your website.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Input readOnly className="text-xs rounded-xl bg-white/5 border-white/10 text-gray-100" value={`<script src=\"${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/embed/agent/AGENT_ID.js\" data-position=\"right\" data-theme=\"dark\" data-title=\"Chat\" data-primary-color=\"#2563eb\" data-bubble-color=\"#2563eb\" data-offset-x=\"20\" data-offset-y=\"20\" data-font-family=\"system-ui\" data-bubble-icon=\"chat\" data-bubble-text=\"Chat\"></script>`} />
+            <Button variant="outline" className="rounded-xl border-white/10 text-gray-200 hover:bg-white/10" onClick={()=>{
+              navigator.clipboard.writeText(`<script src=\"${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/embed/agent/AGENT_ID.js\" data-position=\"right\" data-theme=\"dark\" data-title=\"Chat\" data-primary-color=\"#2563eb\" data-bubble-color=\"#2563eb\" data-offset-x=\"20\" data-offset-y=\"20\" data-font-family=\"system-ui\" data-bubble-icon=\"chat\" data-bubble-text=\"Chat\"></script>`);
+              toast.success('Embed code copied');
+            }}>Copy</Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Replace AGENT_ID with your agent's id. Customize with data-position (left/right), data-theme (dark/light), data-title, data-primary-color, data-bubble-color, data-offset-x, data-offset-y, data-font-family, data-bubble-icon (chat/message/help/support/question/bot), data-bubble-text.</p>
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 }

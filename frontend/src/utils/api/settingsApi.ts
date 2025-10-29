@@ -27,4 +27,28 @@ export class SettingsApiClient extends BaseApiClient {
       { method: 'POST' }
     );
   }
+
+  static async get2FAQr() {
+    return this.makeRequest<{ dataUrl: string }>(
+      '/api/settings/2fa/qr',
+      { method: 'GET' }
+    );
+  }
+
+  // Optional API key helpers (backend may implement later)
+  static async getApiKeys() {
+    return this.makeRequest<any[]>('/api/settings/apikeys', { method: 'GET' });
+  }
+
+  static async getApiUsage() {
+    return this.makeRequest<any>('/api/settings/usage', { method: 'GET' });
+  }
+
+  static async addApiKey(name: string, key: string) {
+    return this.makeRequest<any>('/api/settings/apikeys', { method: 'POST', body: JSON.stringify({ name, key }) });
+  }
+
+  static async deleteApiKey(id: string) {
+    return this.makeRequest<any>(`/api/settings/apikeys/${id}`, { method: 'DELETE' });
+  }
 }

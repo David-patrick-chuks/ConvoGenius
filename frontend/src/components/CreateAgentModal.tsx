@@ -28,7 +28,8 @@ import {
   ArrowRight,
   X
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { cortexDeskApiClient } from "@/utils/api";
+import { toast } from "sonner";
 
 interface CreateAgentModalProps {
   open: boolean;
@@ -57,13 +58,53 @@ export default function CreateAgentModal({ open, onOpenChange }: CreateAgentModa
     expressAgentEnabled: true,
   });
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Start training
+      // Create agent
       setIsTraining(true);
-      simulateTraining();
+      try {
+        const response = await cortexDeskApiClient.agents.createAgent({
+          name: formData.name,
+          description: formData.description,
+          type: formData.type || 'general',
+          tone: formData.tone || 'friendly',
+          config: {
+            searchEnabled: formData.searchEnabled,
+            newsEnabled: formData.newsEnabled,
+            expressAgentEnabled: formData.expressAgentEnabled,
+          },
+          platforms: [],
+          apis: []
+        });
+        
+        if (response.success) {
+          toast.success('Agent created successfully!');
+          simulateTraining(); // Show progress animation
+          setTimeout(() => {
+            setIsTraining(false);
+            onOpenChange(false);
+            setCurrentStep(1);
+            setFormData({
+              name: "",
+              description: "",
+              type: "",
+              tone: "",
+              searchEnabled: true,
+              newsEnabled: false,
+              expressAgentEnabled: true,
+            });
+            window.location.reload(); // Refresh to show new agent
+          }, 2000);
+        } else {
+          toast.error(response.error || 'Failed to create agent');
+          setIsTraining(false);
+        }
+      } catch (error: any) {
+        toast.error(error.error || 'Failed to create agent');
+        setIsTraining(false);
+      }
     }
   };
 
@@ -80,21 +121,6 @@ export default function CreateAgentModal({ open, onOpenChange }: CreateAgentModa
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
-        setTimeout(() => {
-          setIsTraining(false);
-          onOpenChange(false);
-          // Reset form
-          setCurrentStep(1);
-          setFormData({
-            name: "",
-            description: "",
-            type: "",
-            tone: "",
-            searchEnabled: true,
-            newsEnabled: false,
-            expressAgentEnabled: true,
-          });
-        }, 1000);
       }
       setTrainingProgress(progress);
     }, 200);
@@ -348,14 +374,14 @@ export default function CreateAgentModal({ open, onOpenChange }: CreateAgentModa
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Training Progress</span>
+                <span>Creating Agent...</span>
                 <span>{Math.round(trainingProgress)}%</span>
               </div>
               <Progress value={trainingProgress} className="h-2" />
             </div>
             
             <div className="text-center text-sm text-gray-600">
-              This may take a few minutes...
+              {trainingProgress < 50 ? "Setting up your agent..." : trainingProgress < 90 ? "Configuring settings..." : "Almost done..."}
             </div>
           </div>
         </DialogContent>

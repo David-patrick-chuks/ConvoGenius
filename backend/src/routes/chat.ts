@@ -5,6 +5,41 @@ import Memory from '../models/Memory';
 import { embedText, generateWithContext } from '../services/geminiService';
 
 const router = express.Router();
+// Public chat endpoint (no auth) for embeds/share links
+router.post('/public', async (req: Request, res: Response): Promise<void> => {
+  const startTime = Date.now();
+  try {
+    const { agentId, message, sessionId } = req.body as any;
+    if (!agentId || !message) { res.status(400).json({ error: 'agentId and message are required' }); return; }
+
+    const agent = await Agent.findById(agentId);
+    if (!agent) { res.status(404).json({ error: 'Agent not found' }); return; }
+
+    const finalSessionId = sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const context = await retrieveRelevantContext(agentId, message, 5);
+    const response = await generateContextualResponse(context, message, {
+      name: agent.name,
+      description: agent.description,
+      tone: agent.tone,
+      temperature: 0.7,
+      topP: 0.8,
+      topK: 40,
+      maxTokens: 1024
+    });
+    const responseTime = Date.now() - startTime;
+
+    // Store messages tagged as public
+    const userMessage = new ChatMessage({ agentId, sessionId: finalSessionId, type: 'user', content: message, timestamp: new Date() });
+    const agentMessage = new ChatMessage({ agentId, sessionId: finalSessionId, type: 'agent', content: response, timestamp: new Date(), metadata: { responseTime, confidence: context.length>0?0.8:0.5 } });
+    await Promise.all([userMessage.save(), agentMessage.save()]);
+
+    res.json({ message: response, sessionId: finalSessionId, agentId, timestamp: new Date() });
+    return;
+  } catch (e: any) {
+    res.status(500).json({ error: 'Failed to process chat message', details: e?.message });
+    return;
+  }
+});
 
 // Interface for chat request
 interface ChatRequest {

@@ -1,15 +1,17 @@
 
 import express from 'express';
-import { protect } from '../middlewares/authMiddleware';
-import { 
-    createAgent, 
-    getAgents, 
-    getAgent, 
-    updateAgent, 
-    deleteAgent,
-    getAgentTrainingStatus,
-    clearAgentMemory
+import multer from 'multer';
+import {
+  clearAgentMemory,
+  createAgent,
+  deleteAgent,
+  getAgent,
+  getAgents,
+  getAgentTrainingStatus,
+  updateAgent
 } from '../controllers/agentsController';
+import { uploadAgentAvatar } from '../controllers/uploadsController';
+import { protect } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
@@ -29,5 +31,9 @@ router.route('/:id/training')
 
 router.route('/:id/memory')
     .delete(protect, clearAgentMemory);
+
+// Agent avatar upload (Cloudinary)
+const upload = multer({ storage: multer.memoryStorage() });
+router.post('/:agentId/avatar', protect, upload.single('image'), uploadAgentAvatar);
 
 export default router;

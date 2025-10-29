@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -14,20 +15,21 @@ import { ApiKey, UserSettings } from "@/types/api";
 import { cortexDeskApiClient } from "@/utils/api";
 import { motion } from "framer-motion";
 import {
-    Eye,
-    EyeOff,
-    Key,
-    Monitor,
-    Moon,
-    Plus,
-    Save,
-    Settings as SettingsIcon,
-    Sun,
-    Trash2,
-    Upload,
-    User
+  Eye,
+  EyeOff,
+  Key,
+  Monitor,
+  Moon,
+  Plus,
+  Save,
+  Settings as SettingsIcon,
+  Sun,
+  Trash2,
+  Upload,
+  User
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -35,6 +37,10 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState("dark");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [twoFASetup, setTwoFASetup] = useState<{ otpauthUrl: string; base32: string } | null>(null);
+  const [twoFAToken, setTwoFAToken] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const [profileData, setProfileData] = useState({
     name: "John Doe",
@@ -111,12 +117,9 @@ export default function SettingsPage() {
         ...userSettings,
         // Add profile data to settings if needed
       });
-      if (response.success) {
-        // Show success message
-        console.log("Profile saved successfully");
-      }
+      if (response.success) toast.success("Settings saved");
     } catch (error) {
-      console.error("Failed to save profile:", error);
+      toast.error("Failed to save settings");
     } finally {
       setSaving(false);
     }
@@ -564,11 +567,43 @@ export default function SettingsPage() {
                     <p className="font-medium text-white">Enable 2FA</p>
                     <p className="text-sm text-gray-400">Use an authenticator app for additional security</p>
                   </div>
-                  <Switch />
+                  <div className="space-x-2">
+                    <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10" onClick={async ()=>{
+                      const r = await cortexDeskApiClient.settings.setup2FA();
+                      if (r.success && r.data) {
+                        setTwoFASetup(r.data);
+                        const qr = await cortexDeskApiClient.settings.get2FAQr();
+                        if (qr.success && qr.data) setQrDataUrl(qr.data.dataUrl);
+                      } else {
+                        toast.error(r.error || 'Failed to start 2FA setup');
+                      }
+                    }}>Setup</Button>
+                    <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10" onClick={async ()=>{
+                      await cortexDeskApiClient.settings.disable2FA();
+                      setTwoFASetup(null); setTwoFAToken(""); setQrDataUrl(null);
+                      toast.success('2FA disabled');
+                    }}>Disable</Button>
+                  </div>
                 </div>
-                <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
-                  Setup Authenticator
-                </Button>
+                {twoFASetup && (
+                  <div className="space-y-3">
+                    {qrDataUrl && (
+                      <div className="bg-white rounded p-2 w-[180px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={qrDataUrl} alt="2FA QR" className="w-full h-auto" />
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-300">Secret: <code className="bg-black/40 px-2 py-1 rounded">{twoFASetup.base32}</code></p>
+                    <div className="flex space-x-2">
+                      <Input placeholder="Enter 6-digit code" value={twoFAToken} onChange={(e)=>setTwoFAToken(e.target.value)} className="rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 w-40" />
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl" onClick={async ()=>{
+                        const res = await cortexDeskApiClient.settings.enable2FA(twoFAToken);
+                        if (res.success) { toast.success('2FA enabled'); setTwoFASetup(null); setTwoFAToken(''); setQrDataUrl(null); }
+                        else { toast.error(res.error || 'Failed to enable 2FA'); }
+                      }}>Verify & Enable</Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -585,7 +620,7 @@ export default function SettingsPage() {
                     <p className="font-medium text-white">Delete Account</p>
                     <p className="text-sm text-gray-400">Permanently delete your account and all data</p>
                   </div>
-                  <Button variant="destructive" className="rounded-xl">
+                  <Button variant="destructive" className="rounded-xl" onClick={()=>setConfirmOpen(true)}>
                     Delete Account
                   </Button>
                 </div>
@@ -600,6 +635,7 @@ export default function SettingsPage() {
   };
 
   return (
+    <>
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
@@ -645,5 +681,25 @@ export default function SettingsPage() {
         </div>
       </div>
     </DashboardLayout>
+    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm account deletion</DialogTitle>
+          <DialogDescription>This action cannot be undone.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={()=>setConfirmOpen(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={async ()=>{
+            const r = await cortexDeskApiClient.auth.deleteAccount();
+            setConfirmOpen(false);
+            if (r.success) {
+              await cortexDeskApiClient.auth.logout();
+              window.location.href = '/login';
+            }
+          }}>Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

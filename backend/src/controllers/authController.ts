@@ -3,6 +3,7 @@ import passport from 'passport';
 import { clearAuthCookies, setAuthCookies } from '../middlewares/authMiddleware';
 import { AuthService } from '../services/authService';
 import { AppError, ChangePasswordRequest, LoginRequest, RegisterRequest } from '../types';
+import sendMail from '../utils/brevo';
 import logger from '../utils/logger';
 
 export class AuthController {
@@ -21,6 +22,26 @@ export class AuthController {
             // Set httpOnly cookies
             setAuthCookies(res, result.token, refreshToken);
             
+            // Auto-send verification email if mail configured
+            try {
+                const crypto = await import('crypto');
+                const token = crypto.randomBytes(32).toString('hex');
+                const User = (await import('../models/User')).default as any;
+                const u = await User.findById((result.user as any)._id);
+                if (u) {
+                    u.emailVerificationToken = token;
+                    await u.save();
+                    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+                    await sendMail(
+                        result.user.email,
+                        'Verify your email - CortexDesk',
+                        `<p>Welcome to CortexDesk!</p><p>Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+                    );
+                }
+            } catch (e) {
+                logger.warn('Email verification not sent (mailer not configured)');
+            }
+
             res.status(201).json({
                 success: true,
                 data: { user: result.user },
@@ -249,26 +270,54 @@ export class AuthController {
      */
     static async verifyEmail(req: Request, res: Response, next: NextFunction) {
         try {
-            // TODO: Implement email verification
-            res.json({
-                success: true,
-                message: 'Email verification not implemented yet'
-            });
+            const token = (req.body?.token || req.query?.token) as string;
+            if (!token) {
+                throw new AppError('Verification token is required', 400);
+            }
+            const user = await (await import('../models/User')).default.findOne({ emailVerificationToken: token });
+            if (!user) {
+                throw new AppError('Invalid or expired token', 400);
+            }
+            (user as any).isEmailVerified = true;
+            (user as any).emailVerificationToken = undefined;
+            await (user as any).save();
+            res.json({ success: true, message: 'Email verified successfully' });
         } catch (error) {
             next(error);
         }
     }
 
-    /**
-     * Forgot password (placeholder for future implementation)
-     */
-    static async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            // TODO: Implement forgot password
-            res.json({
-                success: true,
-                message: 'Password reset not implemented yet'
-            });
+            const { email } = req.body as { email: string };
+            if (!email) throw new AppError('Email is required', 400);
+    
+            const User = (await import('../models/User')).default as any;
+            const user = await User.findOne({ email: email.toLowerCase() });
+            if (!user) throw new AppError('User not found', 404);
+    
+            const crypto = await import('crypto');
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            user.passwordResetToken = resetToken;
+            user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+            await user.save();
+    
+            const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    
+            try {
+                await sendMail(
+                    email,
+                    'Reset your password - CortexDesk',
+                    `<p>Click the link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+                );
+                
+                res.json({ success: true, message: 'Password reset email sent' });
+                return;
+            } catch (e) {
+                logger.warn('Email transport not configured; returning link in response for dev');
+                res.json({ success: true, message: 'Password reset link (dev)', data: { resetUrl } });
+                return;
+            }
         } catch (error) {
             next(error);
         }
@@ -279,11 +328,16 @@ export class AuthController {
      */
     static async resetPassword(req: Request, res: Response, next: NextFunction) {
         try {
-            // TODO: Implement password reset
-            res.json({
-                success: true,
-                message: 'Password reset not implemented yet'
-            });
+            const { token, password } = req.body as { token: string; password: string };
+            if (!token || !password) throw new AppError('Token and password are required', 400);
+            const User = (await import('../models/User')).default as any;
+            const user = await User.findOne({ passwordResetToken: token, passwordResetExpires: { $gt: new Date() } });
+            if (!user) throw new AppError('Invalid or expired token', 400);
+            user.password = password;
+            user.passwordResetToken = undefined;
+            user.passwordResetExpires = undefined;
+            await user.save();
+            res.json({ success: true, message: 'Password reset successful' });
         } catch (error) {
             next(error);
         }

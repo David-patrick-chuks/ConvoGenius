@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Resource } from "@/types/api";
 import { cortexDeskApiClient } from "@/utils/api";
 import { motion } from "framer-motion";
@@ -32,64 +33,9 @@ import {
   Upload
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-// Mock data for resources
-const resources = [
-  {
-    id: 1,
-    name: "Customer FAQ.pdf",
-    type: "PDF",
-    size: "2.3 MB",
-    uploadDate: "2024-01-15",
-    linkedAgents: ["Customer Support Bot", "Sales Assistant"],
-    status: "processed",
-  },
-  {
-    id: 2,
-    name: "Product Manual.docx",
-    type: "DOC",
-    size: "1.8 MB",
-    uploadDate: "2024-01-14",
-    linkedAgents: ["Customer Support Bot"],
-    status: "processing",
-  },
-  {
-    id: 3,
-    name: "Company Guidelines.txt",
-    type: "TXT",
-    size: "0.5 MB",
-    uploadDate: "2024-01-13",
-    linkedAgents: ["Content Writer", "Customer Support Bot"],
-    status: "processed",
-  },
-  {
-    id: 4,
-    name: "Training Materials.zip",
-    type: "ZIP",
-    size: "15.2 MB",
-    uploadDate: "2024-01-12",
-    linkedAgents: [],
-    status: "processed",
-  },
-  {
-    id: 5,
-    name: "Logo.png",
-    type: "PNG",
-    size: "0.8 MB",
-    uploadDate: "2024-01-11",
-    linkedAgents: ["Content Writer"],
-    status: "processed",
-  },
-  {
-    id: 6,
-    name: "API Documentation.pdf",
-    type: "PDF",
-    size: "3.1 MB",
-    uploadDate: "2024-01-10",
-    linkedAgents: ["Technical Support Bot"],
-    status: "processed",
-  },
-];
+// removed mock data
 
 const fileTypeIcons = {
   PDF: FileText,
@@ -118,6 +64,8 @@ export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadResources();
@@ -126,12 +74,17 @@ export default function ResourcesPage() {
   const loadResources = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await cortexDeskApiClient.resources.getResources();
       if (response.success && response.data) {
         setResources(response.data);
+      } else {
+        setLoadError(response.error || 'Failed to fetch resources');
+        toast.error(response.error || 'Failed to fetch resources');
       }
     } catch (error) {
-      console.error("Failed to load resources:", error);
+      setLoadError('Failed to load resources');
+      toast.error('Failed to load resources');
     } finally {
       setLoading(false);
     }
@@ -163,15 +116,34 @@ export default function ResourcesPage() {
     if (!file) return;
 
     setUploading(true);
+    setUploadProgress(0);
     try {
-      const response = await cortexDeskApiClient.resources.uploadResource(file);
+      const response = await cortexDeskApiClient.resources.uploadResource(file, undefined, (progress) => {
+        setUploadProgress(progress);
+      });
       if (response.success && response.data) {
         setResources(prev => [...prev, response.data!]);
+        toast.success('File uploaded successfully');
+        setUploadProgress(0);
+      } else {
+        toast.error(response.error || 'Failed to upload file');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to upload file:", error);
+      toast.error(error.error || 'Failed to upload file');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleDownloadResource = async (resourceId: string) => {
+    try {
+      await cortexDeskApiClient.resources.downloadResource(resourceId);
+      toast.success('Download started');
+    } catch (error) {
+      console.error("Failed to download resource:", error);
+      toast.error('Failed to download resource');
     }
   };
 
@@ -232,7 +204,7 @@ export default function ResourcesPage() {
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  Uploading... {Math.round(uploadProgress)}%
                 </>
               ) : (
                 <>
@@ -243,6 +215,21 @@ export default function ResourcesPage() {
             </Button>
           </div>
         </div>
+
+        {/* Upload Progress */}
+        {uploading && (
+          <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-300">Uploading...</span>
+                  <span className="text-gray-300">{Math.round(uploadProgress)}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -279,15 +266,15 @@ export default function ResourcesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="border-2 hover:border-primary/20 transition-all hover:shadow-lg">
+                <Card className="backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                        <p className="text-2xl font-bold text-black mt-1">{stat.value}</p>
+                        <p className="text-sm font-medium text-gray-400">{stat.label}</p>
+                        <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
                       </div>
-                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-white/10">
+                        <Icon className="w-6 h-6 text-blue-400" />
                       </div>
                     </div>
                   </CardContent>
@@ -298,7 +285,7 @@ export default function ResourcesPage() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="border-2">
+        <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4 flex-1">
@@ -308,17 +295,17 @@ export default function ResourcesPage() {
                     placeholder="Search files..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-2 rounded-xl"
+                    className="pl-10 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
-                <Button variant="outline" className="border-2 rounded-xl">
+                <Button variant="outline" className="border border-white/10 text-gray-200 rounded-xl hover:bg-white/10">
                   <Filter className="w-4 h-4 mr-2" />
                   Filter
                 </Button>
               </div>
               
               <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1 border-2 rounded-xl p-1">
+                <div className="flex items-center space-x-1 border border-white/10 rounded-xl p-1">
                   <Button
                     size="sm"
                     variant={viewMode === "grid" ? "default" : "ghost"}
@@ -368,6 +355,11 @@ export default function ResourcesPage() {
 
         {/* Files Grid/List */}
         {viewMode === "grid" ? (
+          (!loading && resources.length === 0) ? (
+            <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
+              <CardContent className="p-8 text-center text-gray-300">No resources yet. Upload files to get started.</CardContent>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredResources.map((resource, index) => {
               const Icon = getFileIcon(resource.type);
@@ -380,7 +372,7 @@ export default function ResourcesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                 >
-                  <Card className={`border-2 hover:border-primary/20 transition-all hover:shadow-lg cursor-pointer ${
+                  <Card className={`backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer ${
                     selectedFiles.includes(resource.id) ? "ring-2 ring-primary" : ""
                   }`}>
                     <CardHeader className="pb-4">
@@ -399,7 +391,7 @@ export default function ResourcesPage() {
                               <Eye className="w-4 h-4 mr-2" />
                               Preview
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownloadResource(resource.id)}>
                               <Download className="w-4 h-4 mr-2" />
                               Download
                             </DropdownMenuItem>
@@ -413,8 +405,8 @@ export default function ResourcesPage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <CardTitle className="text-sm text-black truncate">{resource.name}</CardTitle>
-                      <CardDescription className="text-xs text-gray-600">
+                      <CardTitle className="text-sm text-white truncate">{resource.name}</CardTitle>
+                      <CardDescription className="text-xs text-gray-400">
                         {resource.size} • {formatDate(resource.uploadDate)}
                       </CardDescription>
                     </CardHeader>
@@ -422,15 +414,15 @@ export default function ResourcesPage() {
                     <CardContent className="pt-0">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs border-white/10 text-gray-200">
                             {resource.type}
                           </Badge>
                           <Badge 
                             variant={resource.status === "processed" ? "default" : "secondary"}
                             className={`text-xs ${
                               resource.status === "processed" 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-yellow-100 text-yellow-800"
+                                ? "bg-green-500/20 text-green-300 border border-white/10" 
+                                : "bg-yellow-500/20 text-yellow-200 border border-white/10"
                             }`}
                           >
                             {resource.status}
@@ -439,15 +431,15 @@ export default function ResourcesPage() {
                         
                         {resource.linkedAgents.length > 0 && (
                           <div>
-                            <p className="text-xs text-gray-600 mb-1">Linked to:</p>
+                            <p className="text-xs text-gray-400 mb-1">Linked to:</p>
                             <div className="flex flex-wrap gap-1">
                               {resource.linkedAgents.slice(0, 2).map((agent) => (
-                                <Badge key={agent} variant="outline" className="text-xs">
+                                <Badge key={agent} variant="outline" className="text-xs border-white/10 text-gray-200">
                                   {agent}
                                 </Badge>
                               ))}
                               {resource.linkedAgents.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs border-white/10 text-gray-200">
                                   +{resource.linkedAgents.length - 2}
                                 </Badge>
                               )}
@@ -460,13 +452,13 @@ export default function ResourcesPage() {
                 </motion.div>
               );
             })}
-          </div>
+          </div>)
         ) : (
-          <Card className="border-2">
+          <Card className="backdrop-blur-xl bg-white/5 border border-white/10">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="border-b bg-gray-50">
+                  <thead className="border-b bg-white/5">
                     <tr>
                       <th className="text-left p-4">
                         <input
@@ -477,13 +469,13 @@ export default function ResourcesPage() {
                           aria-label="Select all files"
                         />
                       </th>
-                      <th className="text-left p-4 font-medium text-black">Name</th>
-                      <th className="text-left p-4 font-medium text-black">Type</th>
-                      <th className="text-left p-4 font-medium text-black">Size</th>
-                      <th className="text-left p-4 font-medium text-black">Upload Date</th>
-                      <th className="text-left p-4 font-medium text-black">Linked Agents</th>
-                      <th className="text-left p-4 font-medium text-black">Status</th>
-                      <th className="text-left p-4 font-medium text-black">Actions</th>
+                      <th className="text-left p-4 font-medium text-white">Name</th>
+                      <th className="text-left p-4 font-medium text-white">Type</th>
+                      <th className="text-left p-4 font-medium text-white">Size</th>
+                      <th className="text-left p-4 font-medium text-white">Upload Date</th>
+                      <th className="text-left p-4 font-medium text-white">Linked Agents</th>
+                      <th className="text-left p-4 font-medium text-white">Status</th>
+                      <th className="text-left p-4 font-medium text-white">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -497,7 +489,7 @@ export default function ResourcesPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: index * 0.05 }}
-                          className="border-b hover:bg-gray-50"
+                          className="border-b hover:bg-white/5"
                         >
                           <td className="p-4">
                             <input
@@ -513,16 +505,16 @@ export default function ResourcesPage() {
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass}`}>
                                 <Icon className="w-4 h-4" />
                               </div>
-                              <span className="font-medium text-black">{resource.name}</span>
+                              <span className="font-medium text-white">{resource.name}</span>
                             </div>
                           </td>
                           <td className="p-4">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs border-white/10 text-gray-200">
                               {resource.type}
                             </Badge>
                           </td>
-                          <td className="p-4 text-gray-600">{resource.size}</td>
-                          <td className="p-4 text-gray-600">{formatDate(resource.uploadDate)}</td>
+                          <td className="p-4 text-gray-400">{resource.size}</td>
+                          <td className="p-4 text-gray-400">{formatDate(resource.uploadDate)}</td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-1">
                               {resource.linkedAgents.slice(0, 2).map((agent) => (
@@ -561,7 +553,7 @@ export default function ResourcesPage() {
                                   <Eye className="w-4 h-4 mr-2" />
                                   Preview
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadResource(resource.id)}>
                                   <Download className="w-4 h-4 mr-2" />
                                   Download
                                 </DropdownMenuItem>

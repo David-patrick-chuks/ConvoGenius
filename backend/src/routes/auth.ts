@@ -1,6 +1,5 @@
 
 import express from 'express';
-import passport from 'passport';
 import { AuthController } from '../controllers/authController';
 import { protect, refreshToken } from '../middlewares/authMiddleware';
 

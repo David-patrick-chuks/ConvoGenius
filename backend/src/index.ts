@@ -66,6 +66,7 @@ import healthRoutes from './routes/health';
 import resourcesRoutes from './routes/resources';
 import settingsRoutes from './routes/settings';
 import webhookRoutes from './routes/webhooks';
+import embedRoutes from './routes/embed';
 
 app.use('/api/deployments', deploymentRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -74,6 +75,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/embed', embedRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('CortexDesk Backend');

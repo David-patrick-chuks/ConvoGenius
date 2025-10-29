@@ -1,5 +1,6 @@
 
 import { Request, Response } from 'express';
+import QRCode from 'qrcode';
 import speakeasy from 'speakeasy';
 import Setting from '../models/Setting';
 import User from '../models/User';
@@ -45,7 +46,7 @@ export const generate2FASetup = async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;
         const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) { res.status(404).json({ message: 'User not found' }); return; }
 
         const secret = speakeasy.generateSecret({
             name: `CortexDesk (${user.email})`,
@@ -57,9 +58,11 @@ export const generate2FASetup = async (req: Request, res: Response) => {
         await user.save();
 
         res.status(200).json({ otpauthUrl: secret.otpauth_url, base32: secret.base32 });
+        return;
     } catch (error) {
         logger.error('Error generating 2FA setup:', error);
         res.status(500).json({ message: 'Server error' });
+        return;
     }
 };
 
@@ -69,7 +72,7 @@ export const enable2FA = async (req: Request, res: Response) => {
         const userId = (req.user as any).id;
         const { token } = req.body as { token: string };
         const user = await User.findById(userId);
-        if (!user || !(user as any).twoFactorSecret) return res.status(400).json({ message: '2FA not initialized' });
+        if (!user || !(user as any).twoFactorSecret) { res.status(400).json({ message: '2FA not initialized' }); return; }
 
         const verified = speakeasy.totp.verify({
             secret: (user as any).twoFactorSecret,
@@ -77,14 +80,16 @@ export const enable2FA = async (req: Request, res: Response) => {
             token,
             window: 1
         });
-        if (!verified) return res.status(400).json({ message: 'Invalid verification code' });
+        if (!verified) { res.status(400).json({ message: 'Invalid verification code' }); return; }
 
         (user as any).twoFactorEnabled = true;
         await user.save();
         res.status(200).json({ message: '2FA enabled' });
+        return;
     } catch (error) {
         logger.error('Error enabling 2FA:', error);
         res.status(500).json({ message: 'Server error' });
+        return;
     }
 };
 
@@ -93,13 +98,37 @@ export const disable2FA = async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;
         const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) { res.status(404).json({ message: 'User not found' }); return; }
         (user as any).twoFactorEnabled = false;
         (user as any).twoFactorSecret = undefined;
         await user.save();
         res.status(200).json({ message: '2FA disabled' });
+        return;
     } catch (error) {
         logger.error('Error disabling 2FA:', error);
         res.status(500).json({ message: 'Server error' });
+        return;
+    }
+};
+
+// 2FA: return QR code data URL for authenticator apps
+export const get2FAQr = async (req: Request, res: Response) => {
+    try {
+        const userId = (req.user as any).id;
+        const user = await User.findById(userId);
+        if (!user || !(user as any).twoFactorSecret) { res.status(400).json({ message: '2FA not initialized' }); return; }
+        const otpauthUrl = speakeasy.otpauthURL({
+            secret: (user as any).twoFactorSecret,
+            label: `CortexDesk (${user.email})`,
+            issuer: 'CortexDesk',
+            encoding: 'base32'
+        });
+        const dataUrl = await QRCode.toDataURL(otpauthUrl);
+        res.status(200).json({ dataUrl });
+        return;
+    } catch (error) {
+        logger.error('Error generating 2FA QR:', error);
+        res.status(500).json({ message: 'Server error' });
+        return;
     }
 };
