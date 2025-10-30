@@ -11,7 +11,7 @@ import logger from '../utils/logger'; // Import the logger
 export const getDeployments = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req.user as any).id;
-        const deployments = await Deployment.find({ userId: userId, ...(req.query.agentId ? { agent: req.query.agentId } : {}) });
+        const deployments = await Deployment.find({ userId: userId, ...(req.query.agentId ? { agentId: req.query.agentId } : {}) });
         res.status(200).json(deployments);
         return;
     } catch (error) {

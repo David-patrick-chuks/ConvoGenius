@@ -54,7 +54,6 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdfjs-dist": "^5.4.296",
-    "puppeteer": "^24.26.1",
     "qrcode": "^1.5.4",
     "redis": "^5.9.0",
     "sharp": "^0.34.4",

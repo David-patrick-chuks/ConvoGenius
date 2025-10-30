@@ -1,12 +1,12 @@
 import express, { NextFunction, Request, Response } from 'express';
-import multer from 'multer';
-import * as path from 'path';
 import * as fs from 'fs';
-import Resource from '../models/Resource';
-import Agent from '../models/Agent';
-import { parseFile, getFileTypeFromMimeType, getFileTypeFromExtension } from '../utils/parseFile';
-import { validateFileUpload, generateSecureFilename, SECURITY_CONFIG } from '../utils/security';
+import multer from 'multer';
 import { protect } from '../middlewares/authMiddleware';
+import Agent from '../models/Agent';
+import Resource from '../models/Resource';
+import { ResourceProcessingQueueService } from '../services/queueService';
+import { getFileTypeFromExtension, getFileTypeFromMimeType } from '../utils/parseFile';
+import { generateSecureFilename, sanitizeRequest, SECURITY_CONFIG, validateFileUpload } from '../utils/security';
 
 const router = express.Router();
 // All routes require authentication to ensure req.user is populated
@@ -158,45 +158,53 @@ router.post('/', upload.single('file'), validateResourceRequest, async (req: Req
     });
 
     await resource.save();
-
-    // Process file asynchronously
-    setImmediate(async () => {
-      try {
-        const fileBuffer = fs.readFileSync(req.file!.path);
-        const parseResult = await parseFile(fileBuffer, fileType);
-        
-        if (parseResult.success && parseResult.text) {
-          await Resource.findByIdAndUpdate(resource._id, {
-            status: 'processed',
-            metadata: {
-              wordCount: parseResult.text.split(/\s+/).length,
-              extractedText: parseResult.text.substring(0, 1000) + '...',
-              ...parseResult.metadata
-            }
-          });
-        } else {
-          await Resource.findByIdAndUpdate(resource._id, {
-            status: 'failed',
-            metadata: {
-              error: parseResult.error || 'Failed to process file'
-            }
-          });
-        }
-      } catch (error) {
-        await Resource.findByIdAndUpdate(resource._id, {
-          status: 'failed',
-          metadata: {
-            error: error instanceof Error ? error.message : 'Unknown error'
-          }
-        });
-      }
-    });
+    // Enqueue background processing for better UX
+    await ResourceProcessingQueueService.addProcessingJob(resource.id, userId, resource.path);
 
     res.status(201).json(resource);
     return;
   } catch (error) {
     console.error('Error uploading resource:', error);
     res.status(500).json({ error: 'Failed to upload resource' });
+    return;
+  }
+});
+
+// Create a URL-based resource (website or youtube) and enqueue processing
+router.post('/url', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sanitized } = sanitizeRequest(req);
+    const userId = (req.user as any).id;
+    const { source, sourceUrl, linkedAgents = [] } = { ...req.body, ...sanitized } as any;
+
+    if (!source || !['website', 'youtube'].includes(source)) {
+      res.status(400).json({ error: 'source must be website or youtube' });
+      return;
+    }
+    if (!sourceUrl) {
+      res.status(400).json({ error: 'sourceUrl is required' });
+      return;
+    }
+    const resource = new Resource({
+      userId,
+      name: sourceUrl,
+      originalName: sourceUrl,
+      type: source,
+      mimeType: 'text/plain',
+      size: 0,
+      uploadDate: new Date(),
+      linkedAgents: Array.isArray(linkedAgents) ? linkedAgents : [],
+      status: 'processing',
+      url: sourceUrl,
+      path: ''
+    });
+    await resource.save();
+    await ResourceProcessingQueueService.addProcessingJob(resource.id, userId, sourceUrl);
+    res.status(201).json(resource);
+    return;
+  } catch (e) {
+    console.error('Error creating URL resource:', e);
+    res.status(500).json({ error: 'Failed to create URL resource' });
     return;
   }
 });
@@ -496,29 +504,6 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
  *       500:
  *         description: Internal server error
  */
-router.get('/:id/download', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = (req.user as any).id;
-
-    const resource = await Resource.findOne({ _id: id, userId });
-    if (!resource) {
-      res.status(404).json({ error: 'Resource not found' });
-      return;
-    }
-
-    if (!fs.existsSync(resource.path)) {
-      res.status(404).json({ error: 'File not found on disk' });
-      return;
-    }
-
-    res.download(resource.path, resource.originalName);
-    return;
-  } catch (error) {
-    console.error('Error downloading resource:', error);
-    res.status(500).json({ error: 'Failed to download resource' });
-    return;
-  }
-});
+// Download endpoint removed by product decision: resources are processed to text and shown in UI; no direct download
 
 export default router;

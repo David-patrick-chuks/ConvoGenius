@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import axios from 'axios';
 import { JSDOM } from 'jsdom';
 
 export interface ScrapeOptions {
@@ -21,129 +21,92 @@ export async function scrapeWebsite(url: string, options: ScrapeOptions = {}): P
     firstRouteOnly = true,
     maxPages = 10,
     timeout = 30000,
-    userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0 Safari/537.36'
   } = options;
 
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
+  const visitedUrls = new Set<string>();
+  const allContent: string[] = [];
+  const urlsToVisit = [url];
+  let pagesScraped = 0;
 
-    const page = await browser.newPage();
-    await page.setUserAgent(userAgent);
-    await page.setViewport({ width: 1920, height: 1080 });
+  while (urlsToVisit.length > 0 && pagesScraped < maxPages) {
+    const currentUrl = urlsToVisit.shift()!;
+    if (visitedUrls.has(currentUrl)) continue;
 
-    // Set timeout
-    page.setDefaultTimeout(timeout);
+    try {
+      console.log(`Scraping: ${currentUrl}`);
+      const response = await axios.get(currentUrl, {
+        headers: { 'User-Agent': userAgent },
+        timeout,
+      });
 
-    const visitedUrls = new Set<string>();
-    const allContent: string[] = [];
-    const urlsToVisit = [url];
-    let pagesScraped = 0;
+      const html = response.data;
+      const dom = new JSDOM(html);
+      const document = dom.window.document;
 
-    while (urlsToVisit.length > 0 && pagesScraped < maxPages) {
-      const currentUrl = urlsToVisit.shift()!;
-      
-      if (visitedUrls.has(currentUrl)) {
-        continue;
+      // Remove unwanted elements
+      document.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
+
+      // Extract text content
+      const main =
+        document.querySelector('main, article, .content, #content, .main') || document.body;
+      const text = main?.textContent?.trim() || '';
+
+      if (text.length > 0) {
+        allContent.push(text);
+        visitedUrls.add(currentUrl);
+        pagesScraped++;
       }
 
-      try {
-        console.log(`Scraping: ${currentUrl}`);
-        await page.goto(currentUrl, { waitUntil: 'networkidle2' });
-        
-        // Extract text content
-        const content = await page.evaluate(() => {
-          // Remove script and style elements
-          const scripts = document.querySelectorAll('script, style, nav, header, footer, aside');
-          scripts.forEach(el => el.remove());
-          
-          // Get main content
-          const mainContent = document.querySelector('main, article, .content, #content, .main') || document.body;
-          return (mainContent as any).textContent || '';
-        });
-
-        if (content.trim().length > 0) {
-          allContent.push(content.trim());
-          visitedUrls.add(currentUrl);
-          pagesScraped++;
-        }
-
-        // If not first route only, find more links
-        if (!firstRouteOnly && pagesScraped < maxPages) {
-          const links = await page.evaluate((baseUrl) => {
-            const linkElements = document.querySelectorAll('a[href]');
-            const links: string[] = [];
-            
-            linkElements.forEach(link => {
-              const href = link.getAttribute('href');
-              if (href) {
-                try {
-                  const url = new URL(href, baseUrl);
-                  if (url.origin === new URL(baseUrl).origin && !url.href.includes('#')) {
-                    links.push(url.href);
-                  }
-                } catch (e) {
-                  // Invalid URL, skip
-                }
-              }
-            });
-            
-            return [...new Set(links)]; // Remove duplicates
-          }, currentUrl);
-
-          // Add new links to visit
-          links.forEach(link => {
-            if (!visitedUrls.has(link) && !urlsToVisit.includes(link)) {
-              urlsToVisit.push(link);
+      // If not first route only, find internal links
+      if (!firstRouteOnly && pagesScraped < maxPages) {
+        const base = new URL(currentUrl);
+        const links = Array.from(document.querySelectorAll('a[href]'))
+          .map(link => link.getAttribute('href'))
+          .filter(Boolean)
+          .map(href => {
+            try {
+              const u = new URL(href!, base);
+              return u.href;
+            } catch {
+              return null;
             }
-          });
-        }
+          })
+          .filter(
+            (href): href is string =>
+              !!href &&
+              href.startsWith(base.origin) &&
+              !href.includes('#') &&
+              !visitedUrls.has(href)
+          );
 
-      } catch (error) {
-        console.error(`Error scraping ${currentUrl}:`, error);
-        // Continue with next URL
+        // Add unique links
+        links.forEach(link => {
+          if (!urlsToVisit.includes(link)) {
+            urlsToVisit.push(link);
+          }
+        });
       }
+    } catch (error: any) {
+      console.error(`Error scraping ${currentUrl}:`, error.message);
+      // Continue to next URL
     }
+  }
 
-    await browser.close();
-
-    if (allContent.length === 0) {
-      return {
-        success: false,
-        error: 'No content found on the website'
-      };
-    }
-
-    const combinedContent = allContent.join('\n\n');
-    
-    return {
-      success: true,
-      content: combinedContent,
-      pages: pagesScraped,
-      urls: Array.from(visitedUrls)
-    };
-
-  } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
-    
+  if (allContent.length === 0) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred while scraping'
+      error: 'No content found on the website',
     };
   }
+
+  const combinedContent = allContent.join('\n\n');
+  return {
+    success: true,
+    content: combinedContent,
+    pages: pagesScraped,
+    urls: Array.from(visitedUrls),
+  };
 }
 
 export async function scrapeAllRoutes(url: string, options: ScrapeOptions = {}): Promise<ScrapeResult> {
@@ -152,23 +115,20 @@ export async function scrapeAllRoutes(url: string, options: ScrapeOptions = {}):
 
 export function cleanScrapedContent(content: string): string {
   return content
-    .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
-    .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
-    .replace(/[^\x20-\x7E\n]/g, '') // Remove non-printable characters except newlines
+    .replace(/\s+/g, ' ')
+    .replace(/\n\s*\n/g, '\n')
+    .replace(/[^\x20-\x7E\n]/g, '')
     .trim();
 }
 
 export function extractTextFromHtml(html: string): string {
   const dom = new JSDOM(html);
   const document = dom.window.document;
-  
-  // Remove script and style elements
-  const scripts = document.querySelectorAll('script, style, nav, header, footer, aside');
-  scripts.forEach(el => el.remove());
-  
-  // Get main content
-  const mainContent = document.querySelector('main, article, .content, #content, .main') || document.body;
-  return mainContent?.textContent || '';
+
+  document.querySelectorAll('script, style, nav, header, footer, aside').forEach(el => el.remove());
+  const main = document.querySelector('main, article, .content, #content, .main') || document.body;
+
+  return main?.textContent?.trim() || '';
 }
 
 export function isValidUrl(url: string): boolean {

@@ -9,6 +9,7 @@ export interface IResource extends Document {
   size: number;
   uploadDate: Date;
   linkedAgents: string[];
+  trainedAgents?: string[];
   status: 'processed' | 'processing' | 'failed';
   url: string;
   path: string;
@@ -30,6 +31,7 @@ const ResourceSchema = new Schema<IResource>({
   size: { type: Number, required: true },
   uploadDate: { type: Date, default: Date.now },
   linkedAgents: [{ type: Schema.Types.ObjectId, ref: 'Agent' }],
+  trainedAgents: [{ type: Schema.Types.ObjectId, ref: 'Agent' }],
   status: { 
     type: String, 
     enum: ['processed', 'processing', 'failed'], 
@@ -55,6 +57,7 @@ ResourceSchema.index({ userId: 1, uploadDate: -1 });
 ResourceSchema.index({ userId: 1, status: 1 });
 ResourceSchema.index({ userId: 1, type: 1 });
 ResourceSchema.index({ linkedAgents: 1 });
+ResourceSchema.index({ trainedAgents: 1 });
 
 // Virtual for resource ID
 ResourceSchema.virtual('id').get(function() {

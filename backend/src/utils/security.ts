@@ -1,5 +1,5 @@
-import * as path from 'path';
 import * as crypto from 'crypto';
+import * as path from 'path';
 
 export interface SecurityConfig {
   MAX_FILE_SIZE: number;
@@ -11,9 +11,16 @@ export interface SecurityConfig {
 }
 
 export const SECURITY_CONFIG: SecurityConfig = {
-  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB per requirements
   MAX_FILES_PER_REQUEST: 10,
-  ALLOWED_FILE_TYPES: ['pdf', 'docx', 'doc', 'txt', 'csv', 'json', 'md', 'mp3', 'mp4', 'wav', 'avi', 'mov'],
+  ALLOWED_FILE_TYPES: [
+    // documents
+    'pdf','docx','doc','txt','csv','json','md',
+    // audio
+    'mp3','wav','m4a','aac','ogg','flac',
+    // video
+    'mp4','webm','mov','avi','mkv'
+  ],
   ALLOWED_MIME_TYPES: [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -23,12 +30,10 @@ export const SECURITY_CONFIG: SecurityConfig = {
     'application/json',
     'text/markdown',
     'text/x-markdown',
-    'audio/mpeg',
-    'audio/mp3',
-    'audio/wav',
-    'video/mp4',
-    'video/avi',
-    'video/quicktime'
+    // audio
+    'audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/aac','audio/ogg','audio/flac','audio/x-flac','audio/mp4','audio/x-m4a',
+    // video
+    'video/mp4','video/webm','video/avi','video/quicktime','video/x-matroska'
   ],
   MAX_TEXT_LENGTH: 1000000, // 1MB of text
   MAX_URL_LENGTH: 2048

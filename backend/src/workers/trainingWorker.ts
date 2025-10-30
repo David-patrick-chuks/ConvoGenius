@@ -206,29 +206,59 @@ export class TrainingWorker {
 
             await job.progress(20);
 
-            // Process resources if provided
+            // Process resources if provided: chunk + embed extractedText into Memory
             if (resources && resources.length > 0) {
                 logger.info(`Processing ${resources.length} resources for training`);
-                
                 for (let i = 0; i < resources.length; i++) {
                     const resourceId = resources[i];
                     const resource = await Resource.findById(resourceId);
-                    
                     if (resource && resource.status === 'processed') {
-                        // Add resource to agent sources
-                        agent.sources.push({
-                            _id: (resource._id as any).toString(),
-                            name: resource.name,
-                            type: resource.type,
-                            size: this.formatFileSize(resource.size),
-                            uploadDate: resource.uploadDate,
-                            status: 'processed',
-                            url: resource.url,
-                            content: resource.metadata?.extractedText
-                        });
+                        const text = resource.metadata?.extractedText || '';
+                        if (text && text.length > 0) {
+                            const chunks = chunkText(text);
+                            const entries: any[] = [];
+                            for (const chunk of chunks) {
+                                const chunkTextVal = chunk.text;
+                                const contentHash = generateContentHash(chunkTextVal);
+                                const existing = await Memory.findOne({ agentId: String(agent._id), contentHash });
+                                if (existing) continue;
+                                let vector: number[];
+                                try {
+                                    vector = await embedText(chunkTextVal);
+                                } catch {
+                                    vector = new Array(768).fill(0);
+                                }
+                                entries.push({
+                                    agentId: String(agent._id),
+                                    text: chunkTextVal,
+                                    embedding: vector,
+                                    source: (resource.type as any),
+                                    sourceUrl: resource.url,
+                                    sourceMetadata: resource.metadata,
+                                    chunkIndex: chunk.metadata.chunkIndex,
+                                    contentHash,
+                                    contentVersion: 1,
+                                    chunkMetadata: chunk.metadata
+                                });
+                            }
+                            if (entries.length > 0) {
+                                await Memory.insertMany(entries);
+                            }
+                            // Track that this resource was used to train this agent
+                            await Resource.findByIdAndUpdate(resource._id, { $addToSet: { trainedAgents: agent._id } });
+                            // Add resource to agent sources list for UI
+                            agent.sources.push({
+                                _id: (resource._id as any).toString(),
+                                name: resource.name,
+                                type: resource.type,
+                                size: this.formatFileSize(resource.size),
+                                uploadDate: resource.uploadDate,
+                                status: 'processed',
+                                url: resource.url,
+                                content: resource.metadata?.extractedText
+                            });
+                        }
                     }
-                    
-                    // Update progress
                     const progress = 20 + ((i + 1) / resources.length) * 40;
                     await job.progress(Math.min(progress, 60));
                 }

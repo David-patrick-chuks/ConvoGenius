@@ -690,3 +690,33 @@ router.get('/jobs/:agentId', async (req: Request, res: Response): Promise<void> 
 });
 
 export default router;
+
+// Train from selected resources
+router.post('/from-resources', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { agentId, resourceIds = [], priority = 'normal' } = req.body as any;
+    // Verify agent belongs to user
+    const agent = await Agent.findOne({ _id: agentId, userId: (req.user as any).id });
+    if (!agent) { res.status(404).json({ error: 'Agent not found or access denied' }); return; }
+    // Create a TrainJob record for tracking
+    const jobId = uuidv4();
+    await TrainJob.create({
+      jobId,
+      agentId,
+      userId: (req.user as any).id,
+      status: 'queued',
+      progress: 0,
+      error: null,
+      result: { fromResources: true, resourceIds },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    // Enqueue background training with resources
+    const job = await TrainingQueueService.addTrainingJob({ agentId, userId: (req.user as any).id, resources: resourceIds, priority } as any);
+    res.json({ jobId: job.id, status: 'queued' });
+    return;
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to queue training from resources' });
+    return;
+  }
+});

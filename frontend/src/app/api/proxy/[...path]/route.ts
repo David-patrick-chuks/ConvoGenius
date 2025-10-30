@@ -58,7 +58,9 @@ async function handleProxy(req: NextRequest, pathSegments: string[]): Promise<Ne
 
   const resHeaders = new Headers();
   backendRes.headers.forEach((v, k) => {
-    if (k.toLowerCase() !== "set-cookie") resHeaders.set(k, v);
+    const kl = k.toLowerCase();
+    if (kl === "content-encoding" || kl === "transfer-encoding" || kl === "set-cookie") return;
+    resHeaders.set(k, v);
   });
 
   // `getSetCookie()` isn’t in the standard type — handle it safely and bind to headers to avoid illegal invocation
