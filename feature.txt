@@ -1,1 +1,1 @@
-Improve type safety in resources and train routes
+Add logging in deploymentsController.ts for audit trail
