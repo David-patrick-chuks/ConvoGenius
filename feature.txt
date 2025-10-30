@@ -1,1 +1,1 @@
-Refactor chatController.ts with improved message handling
+Enhance deploymentsController.ts with better error logging
