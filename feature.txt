@@ -1,1 +1,1 @@
-Update backend routes to use async/await consistently
+Improve error responses in chat and deployment controllers
