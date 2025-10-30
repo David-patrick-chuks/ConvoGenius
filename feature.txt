@@ -1,1 +1,1 @@
-Update tsconfig.json to enable strict null checks
+Rotate and archive backend/combined.log
