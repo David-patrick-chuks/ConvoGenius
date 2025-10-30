@@ -1,1 +1,1 @@
-Optimize scrapeWebsite.ts for faster DOM parsing
+Strengthen security.ts with input sanitization fixes
