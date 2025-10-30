@@ -1,37 +1,48 @@
-import { TransactionalEmailsApi, SendSmtpEmail } from "@getbrevo/brevo";
+import { TransactionalEmailsApi, TransactionalEmailsApiApiKeys } from "@getbrevo/brevo";
 
-const emailAPI = new TransactionalEmailsApi();
+// ✅ Create instance of Brevo transactional email API
+const transactionalEmailsApi = new TransactionalEmailsApi();
 
-// Set API key from environment variable
-emailAPI.authentications.apiKey.apiKey = process.env.BREVO_API_KEY || "";
+// ✅ Set API key securely from environment variable
+transactionalEmailsApi.setApiKey(
+  TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY || ""
+);
 
+/**
+ * Send a transactional email using Brevo
+ * @param toEmail - Recipient email
+ * @param subject - Email subject
+ * @param htmlContent - HTML version of the email
+ * @param textContent - Optional text version
+ * @param senderName - Sender name (default: "CortexDesk")
+ * @param senderEmail - Sender email (default: process.env.BREVO_SENDER_EMAIL or fallback)
+ */
 export async function sendMail(
   toEmail: string,
   subject: string,
   htmlContent: string,
-  senderName: string = "CortexDesk",
-  senderEmail: string = process.env.BREVO_SENDER_EMAIL || "no-reply@cortexdesk.com"
-): Promise<any> {
+  textContent?: string,
+  senderName = "CortexDesk",
+  senderEmail = process.env.BREVO_SENDER_EMAIL || "no-reply@cortexdesk.com"
+): Promise<void> {
   try {
     if (!process.env.BREVO_API_KEY) {
-      console.warn("⚠️ BREVO_API_KEY not configured. Email sending skipped.");
-      return { messageId: "mock-message-id", sent: false };
+      console.warn("⚠️ BREVO_API_KEY not configured. Skipping email send.");
+      return;
     }
 
-    const message = new SendSmtpEmail();
-    message.subject = subject;
-    message.to = [{ email: toEmail }];
-    message.sender = { name: senderName, email: senderEmail };
-    message.htmlContent = htmlContent;
+    const result = await transactionalEmailsApi.sendTransacEmail({
+      to: [{ email: toEmail, name: toEmail.split("@")[0] }],
+      subject,
+      htmlContent,
+      textContent,
+      sender: { email: senderEmail, name: senderName },
+    });
 
-    const response = await emailAPI.sendTransacEmail(message);
-
-    console.log("✅ Email sent successfully:", response?.body?.messageId || response);
-    return response;
+    console.log("✅ Email sent successfully! Message ID:", result.body?.messageId);
   } catch (error: any) {
-    console.error("❌ Error sending email:", error?.body || error?.message || error);
+    console.error("❌ Failed to send email:", error?.body || error?.message || error);
     throw new Error("Email sending failed");
   }
 }
-
-export default sendMail;

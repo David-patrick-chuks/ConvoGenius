@@ -1,7 +1,8 @@
 import { ApiResponse } from '@/types/api';
 
 export class BaseApiClient {
-  protected static baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  // Always call through Next.js API proxy
+  protected static proxyPrefix = "/api/proxy";
 
   // Generic method to handle API calls
   protected static async makeRequest<T>(
@@ -14,15 +15,24 @@ export class BaseApiClient {
       const contentTypeHeader = (options.body instanceof FormData) ? {} : { "Content-Type": "application/json" };
       const authHeader = token ? { "Authorization": `Bearer ${token}` } : {};
       
-      const response = await fetch(`${this.baseUrl}${url}`, {
+      const response = await fetch(`${this.proxyPrefix}${url}`, {
         ...options,
         headers: { ...defaultHeaders, ...contentTypeHeader, ...authHeader, ...(options.headers as any) },
         credentials: 'include'
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Request failed");
+        let errorMsg = "Request failed";
+        try {
+          const errJson = await response.json();
+          errorMsg = (errJson as any)?.error || (errJson as any)?.message || errorMsg;
+        } catch {
+          try {
+            const text = await response.text();
+            if (text) errorMsg = text;
+          } catch {}
+        }
+        throw new Error(errorMsg);
       }
 
       return await response.json();

@@ -42,6 +42,15 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAgents();
     loadAnalytics();
+    const open = () => setCreateAgentOpen(true);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('open-create-agent', open as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('open-create-agent', open as EventListener);
+      }
+    };
   }, []);
 
   const loadAgents = async () => {

@@ -41,6 +41,12 @@ export class AuthApiClient extends BaseApiClient {
     });
   }
 
+  static async resendVerificationEmail(): Promise<ApiResponse<{ message: string }>> {
+    return this.makeRequest<{ message: string }>('/auth/verify-email/resend', {
+      method: 'POST'
+    });
+  }
+
   static async forgotPassword(email: string): Promise<ApiResponse<{ message: string; resetUrl?: string }>> {
     return this.makeRequest<{ message: string; resetUrl?: string }>('/auth/forgot-password', {
       method: 'POST',

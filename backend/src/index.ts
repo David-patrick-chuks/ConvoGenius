@@ -85,9 +85,11 @@ import './workers/deploymentWorker';
 import './workers/trainingWorker';
 
 // Centralized Error Handling Middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    logger.error(err.message, err);
-    res.status(500).send('Something broke!');
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const status = err.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
+  const message = err.isOperational && err.message ? err.message : 'Server error';
+  res.status(status).json({ success: false, error: message });
 });
 
 app.listen(port, () => {

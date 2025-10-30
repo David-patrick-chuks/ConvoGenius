@@ -3,7 +3,7 @@ import passport from 'passport';
 import { clearAuthCookies, setAuthCookies } from '../middlewares/authMiddleware';
 import { AuthService } from '../services/authService';
 import { AppError, ChangePasswordRequest, LoginRequest, RegisterRequest } from '../types';
-import sendMail from '../utils/brevo';
+import { sendMail } from '../utils/brevo';
 import logger from '../utils/logger';
 
 export class AuthController {
@@ -21,6 +21,13 @@ export class AuthController {
             
             // Set httpOnly cookies
             setAuthCookies(res, result.token, refreshToken);
+            // Non-HTTPOnly indicator for Next middleware routing
+            res.cookie('emailVerified', result.user.isEmailVerified ? '1' : '0', {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60 * 1000
+            });
             
             // Auto-send verification email if mail configured
             try {
@@ -66,6 +73,12 @@ export class AuthController {
             
             // Set httpOnly cookies
             setAuthCookies(res, result.token, refreshToken);
+            res.cookie('emailVerified', result.user.isEmailVerified ? '1' : '0', {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60 * 1000
+            });
             
             res.json({
                 success: true,
@@ -226,7 +239,39 @@ export class AuthController {
                 // Set httpOnly cookies
                 setAuthCookies(res, accessToken, refreshToken);
 
-                // Redirect to frontend with success
+                // If email not verified, generate verification token, send email via Brevo, and redirect to verify page
+                try {
+                    if (!user.isEmailVerified) {
+                        const crypto = await import('crypto');
+                        const token = crypto.randomBytes(32).toString('hex');
+                        const u = await (await import('../models/User')).default.findById(user._id);
+                        if (u) {
+                            (u as any).emailVerificationToken = token;
+                            await u.save();
+                            const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+                            const sendMail = (await import('../utils/brevo')).sendMail as any;
+                            await sendMail(user.email, 'Verify your email - CortexDesk', `<p>Verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`);
+                            // Set helper cookie for frontend middleware
+                            res.cookie('emailVerified', '0', {
+                                httpOnly: false,
+                                secure: process.env.NODE_ENV === 'production',
+                                sameSite: 'lax',
+                                maxAge: 30 * 24 * 60 * 60 * 1000
+                            });
+                            return res.redirect(verifyUrl);
+                        }
+                    }
+                } catch (e) {
+                    logger.warn('Google callback verification email step failed or skipped');
+                }
+
+                // Otherwise redirect to dashboard
+                res.cookie('emailVerified', user.isEmailVerified ? '1' : '0', {
+                    httpOnly: false,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: 30 * 24 * 60 * 60 * 1000
+                });
                 res.redirect(`${process.env.FRONTEND_URL}/dashboard?auth=success`);
             } catch (error) {
                 logger.error('Google callback error:', error);
@@ -281,9 +326,44 @@ export class AuthController {
             (user as any).isEmailVerified = true;
             (user as any).emailVerificationToken = undefined;
             await (user as any).save();
+            res.cookie('emailVerified', '1', {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60 * 1000
+            });
             res.json({ success: true, message: 'Email verified successfully' });
         } catch (error) {
             next(error);
+        }
+    }
+
+    /**
+     * Resend verification email to the authenticated user
+     */
+    static async resendVerificationEmail(req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = (req.user as any)?.id;
+            if (!userId) throw new AppError('Unauthorized', 401);
+            const User = (await import('../models/User')).default as any;
+            const user = await User.findById(userId);
+            if (!user) throw new AppError('User not found', 404);
+            if (user.isEmailVerified) {
+                res.json({ success: true, message: 'Email already verified' });
+                return;
+            }
+            const crypto = await import('crypto');
+            const token = crypto.randomBytes(32).toString('hex');
+            user.emailVerificationToken = token;
+            await user.save();
+            const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+            const { sendMail } = await import('../utils/brevo');
+            await sendMail(user.email, 'Verify your email - CortexDesk', `<p>Verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`);
+            res.json({ success: true, message: 'Verification email sent' });
+            return;
+        } catch (error) {
+            next(error);
+            return;
         }
     }
 

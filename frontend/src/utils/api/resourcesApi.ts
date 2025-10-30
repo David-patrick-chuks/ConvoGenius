@@ -25,7 +25,7 @@ export class ResourcesApiClient extends BaseApiClient {
     // Use XMLHttpRequest for progress tracking
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      const url = `${this.baseUrl}/api/resources`;
+      const url = `/api/proxy/api/resources`;
       
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable && onProgress) {
@@ -65,7 +65,7 @@ export class ResourcesApiClient extends BaseApiClient {
   }
 
   static async downloadResource(id: string, token?: string): Promise<void> {
-    const url = `${this.baseUrl}/api/resources/${id}/download`;
+    const url = `/api/proxy/api/resources/${id}/download`;
     const response = await fetch(url, {
       credentials: 'include',
       headers: {

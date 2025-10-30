@@ -6,8 +6,11 @@ import Resource from '../models/Resource';
 import Agent from '../models/Agent';
 import { parseFile, getFileTypeFromMimeType, getFileTypeFromExtension } from '../utils/parseFile';
 import { validateFileUpload, generateSecureFilename, SECURITY_CONFIG } from '../utils/security';
+import { protect } from '../middlewares/authMiddleware';
 
 const router = express.Router();
+// All routes require authentication to ensure req.user is populated
+router.use(protect);
 
 // Multer configuration for file uploads
 const upload = multer({

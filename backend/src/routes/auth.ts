@@ -23,6 +23,7 @@ router.delete('/account', protect, AuthController.deleteAccount);
 
 // Future implementations
 router.post('/verify-email', AuthController.verifyEmail);
+router.post('/verify-email/resend', protect, AuthController.resendVerificationEmail);
 router.post('/forgot-password', AuthController.forgotPassword);
 router.post('/reset-password', AuthController.resetPassword);
 

@@ -190,7 +190,11 @@ export default function DashboardLayout({ children }: SidebarProps) {
                 <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 text-xs bg-blue-600 text-white">3</Badge>
               </Button>
               
-              <Button className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg">
+              <Button className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg" onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-create-agent'));
+                }
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Agent
               </Button>

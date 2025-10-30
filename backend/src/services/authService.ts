@@ -66,8 +66,8 @@ export class AuthService {
     static async register(data: RegisterRequest): Promise<AuthResponse> {
         const { name, email, password, confirmPassword } = data;
 
-        // Validate passwords match
-        if (password !== confirmPassword) {
+        // Validate passwords match if confirmPassword provided
+        if (typeof confirmPassword !== 'undefined' && password !== confirmPassword) {
             throw new AppError('Passwords do not match', 400);
         }
 
@@ -80,7 +80,7 @@ export class AuthService {
         // Create new user
         const user = await User.create({
             name,
-            email,
+            email: email.toLowerCase(),
             password
         });
 
