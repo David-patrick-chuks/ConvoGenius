@@ -1,1 +1,1 @@
-Remove obsolete resourcesController.ts
+Update resources routes to reflect controller removal
