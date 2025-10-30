@@ -1,1 +1,1 @@
-Remove deprecated resource endpoints from routes
+Final cleanup: remove resourcesController.ts and update imports
