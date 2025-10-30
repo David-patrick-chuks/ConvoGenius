@@ -1,1 +1,1 @@
-Add backend/src/workers/resourceWorker.ts
+Update package.json and package-lock.json for backend dependencies
