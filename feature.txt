@@ -1,1 +1,1 @@
-Improve aiService.ts with async error handling
+Optimize scrapeWebsite.ts for faster DOM parsing
