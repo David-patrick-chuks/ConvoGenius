@@ -1,1 +1,1 @@
-Update .gitignore to exclude unnecessary files
+Add backend/src/workers/resourceWorker.ts
