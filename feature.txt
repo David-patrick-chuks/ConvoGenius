@@ -1,1 +1,1 @@
-Update .gitignore to ignore log files
+Improve type safety in resources and train routes
