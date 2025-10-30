@@ -1,1 +1,1 @@
-Fix TypeScript compilation warnings in tsconfig.json
+Update scrapeWebsite.ts to handle relative URLs
