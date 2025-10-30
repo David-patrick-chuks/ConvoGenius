@@ -1,1 +1,1 @@
-Refactor trainingWorker.ts for better concurrency
+Update tsconfig.json to enable strict null checks
