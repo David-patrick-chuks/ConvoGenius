@@ -1,1 +1,1 @@
-Add new resourceWorker.ts for background processing
+Update backend routes to use async/await consistently
