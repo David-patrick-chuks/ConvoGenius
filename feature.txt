@@ -1,1 +1,1 @@
-Update backend package.json scripts for dev server
+Remove deprecated resource endpoints from routes
