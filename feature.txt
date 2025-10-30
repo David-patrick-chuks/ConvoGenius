@@ -1,1 +1,1 @@
-Update package.json and package-lock.json for backend dependencies
+Refactor chatController.ts with improved message handling
