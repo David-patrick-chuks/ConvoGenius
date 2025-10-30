@@ -1,1 +1,1 @@
-Refactor trainingWorker.ts to use worker threads
+Clean up package-lock.json conflicts
