@@ -1,1 +1,1 @@
-Rotate and archive backend/combined.log
+Add new resourceWorker.ts for background processing
