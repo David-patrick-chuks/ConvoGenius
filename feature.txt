@@ -1,1 +1,1 @@
-Clean up package-lock.json conflicts
+Update .gitignore to ignore log files
