@@ -1,1 +1,1 @@
-Update scrapeWebsite.ts to handle relative URLs
+Refactor trainingWorker.ts to use worker threads
