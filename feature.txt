@@ -1,1 +1,1 @@
-Add rate limiting logic in security.ts
+Fix TypeScript compilation warnings in tsconfig.json
