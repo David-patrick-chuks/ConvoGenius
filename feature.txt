@@ -1,1 +1,1 @@
-Optimize aiService.ts prompt engineering
+Update backend package.json scripts for dev server
