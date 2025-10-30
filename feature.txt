@@ -1,1 +1,1 @@
-Update resources routes to reflect controller removal
+Refactor train routes for better request validation
