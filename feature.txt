@@ -1,1 +1,0 @@
-Final cleanup: remove resourcesController.ts and update imports
