@@ -1,1 +1,1 @@
-Refactor Auth middleware with Better Auth and session tokens
+Implement RAG retrieval flow via You.com Search APIs
