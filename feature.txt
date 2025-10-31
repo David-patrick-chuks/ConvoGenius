@@ -1,1 +1,1 @@
-Integrate Stream Chat SDK with real-time participant updates
+Add Stream Video SDK for multi-user video conferencing
