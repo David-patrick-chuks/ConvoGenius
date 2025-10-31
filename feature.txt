@@ -1,1 +1,1 @@
-Optimize AI assistant latency by caching responses
+Add image preview support for meeting analytics screenshots
