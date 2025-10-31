@@ -1,1 +1,1 @@
-Refactor DashboardSidebar.tsx for AI workspace navigation
+Improve MeetingHistory.tsx with searchable past sessions
