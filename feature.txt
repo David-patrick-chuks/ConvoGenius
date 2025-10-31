@@ -1,1 +1,1 @@
-Add fallback AI summarization when transcription fails
+Fix VideoRoom.tsx rendering issue on mobile devices
