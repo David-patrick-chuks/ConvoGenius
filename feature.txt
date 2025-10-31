@@ -1,1 +1,1 @@
-Add API usage verification log with You.com request tracking
+Enhance tRPC endpoints for AI-driven meeting summaries
