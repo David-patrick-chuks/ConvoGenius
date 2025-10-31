@@ -1,1 +1,1 @@
-Fix VideoRoom.tsx rendering issue on mobile devices
+Optimize AI assistant latency by caching responses
