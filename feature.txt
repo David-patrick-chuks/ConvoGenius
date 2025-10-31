@@ -1,1 +1,1 @@
-Improve MeetingHistory.tsx with searchable past sessions
+Add verification badge for You.com API usage logs
