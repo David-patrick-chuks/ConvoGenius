@@ -1,1 +1,1 @@
-Implement file uploads in FileStorageService.ts for meeting media
+Enhance PostgreSQL queries for scalable chat and video data
