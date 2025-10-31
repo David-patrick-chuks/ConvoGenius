@@ -1,1 +1,1 @@
-Add meeting transcription pipeline using OpenAI + Transcription SDK
+Optimize tRPC layer for concurrent AI and chat requests
