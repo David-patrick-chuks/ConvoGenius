@@ -1,1 +1,1 @@
-Add webhook event handlers for Inngest meeting notifications
+Refactor DashboardSidebar.tsx for AI workspace navigation
