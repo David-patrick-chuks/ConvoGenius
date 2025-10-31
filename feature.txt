@@ -1,1 +1,1 @@
-Enhance AnalyticsDashboard.tsx with live meeting metrics
+Add meeting transcription pipeline using OpenAI + Transcription SDK
