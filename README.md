@@ -7,7 +7,7 @@
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-412991)](https://openai.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791)](https://neon.tech/)
 [![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000)](https://vercel.com/)
-[![You.com API](https://img.shields.io/badge/You.com-API-Integrated-FF6B00)](https://documentation.you.com/)
+
 
 **Live Demo:** [https://hacksummit-22wy.vercel.app/](https://hacksummit-22wy.vercel.app/)
 
