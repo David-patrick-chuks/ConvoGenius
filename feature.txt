@@ -1,1 +1,1 @@
-Add Stream Video SDK for multi-user video conferencing
+Refactor Auth middleware with Better Auth and session tokens
