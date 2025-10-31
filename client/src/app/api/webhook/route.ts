@@ -16,6 +16,7 @@ import { and, eq, not } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server"
 import { streamChat } from "@/lib/stream-chat";
 import { generateAvatarUri } from "@/lib/avatar";
+import { youSearch, youExpressAgent, youContents } from "@/lib/you-search";
 
 const openaiClient = new OpenAi({apiKey: process.env.OPENAI_API_KEY!});
 
@@ -267,16 +268,62 @@ export async function POST(req: NextRequest) {
         const previousMessages = channel.state.messages
             .slice(-5)
             .filter((msg)  => msg.text && msg.text.trim() !== "")
-            .map<ChatCompletionMessageParam>((message) => ({
+            .map<ChatCompletionMessageParam>((message : any) => ({
                 role: message.user?.id === existingAgent.id ? "assistant" : "user",
                 content: message.text || "",
             }))
+
+        // New: RAG integration with You.com (original three search endpoints + two new: Express Agent and Contents)
+        let ragContext = '';
+        let sources = '';
+        try {
+          // Endpoint 1: Basic search for snippets/metadata
+          const basicResults = await youSearch(text);
+          const basicSnippets = basicResults.results.web.map(h => `${h.title}: ${h.description} - ${h.snippets.join(' ')}`).join('\n');
+          const basicUrls = basicResults.results.web.map(h => h.url).join(', ');
+
+          // Endpoint 2: Web crawl for full content (conditional: if query needs depth, e.g., explanations or how-to)
+          let webContent = '';
+          let webUrls = '';
+          if (text.toLowerCase().includes('how to') || text.toLowerCase().includes('explain') || text.toLowerCase().includes('details')) {
+            const webResults = await youSearch(text, { livecrawl: 'web' });
+            webContent = webResults.results.web.map(h => h.html || h.markdown || h.snippets.join(' ')).join('\n');  // Use full content if available
+            webUrls = webResults.results.web.map(h => h.url).join(', ');
+          }
+
+          // Endpoint 3: News crawl for timely updates (conditional: if query mentions "latest" or "news")
+          let newsContent = '';
+          let newsUrls = '';
+          if (text.toLowerCase().includes('latest') || text.toLowerCase().includes('news') || text.toLowerCase().includes('update')) {
+            const newsResults = await youSearch(text, { livecrawl: 'news' });
+            newsContent = newsResults.results.news.map(h => h.html || h.markdown || h.description).join('\n');
+            newsUrls = newsResults.results.news.map(h => h.url).join(', ');
+          }
+
+          // New Endpoint 4: Express Agent for quick grounded answer
+          const expressRes = await youExpressAgent(text);
+          const expressAnswer = expressRes.output.find(o => o.type.includes('chat_node.answer'))?.text || '';
+
+          // New Endpoint 5: Contents for full page content (use top URL from basic search if available)
+          let contentsContent = '';
+          let contentsUrl = '';
+          if (basicResults.results.web.length > 0) {
+            contentsUrl = basicResults.results.web[0].url;
+            const contentsRes = await youContents([contentsUrl], 'markdown');
+            contentsContent = contentsRes[0]?.markdown || contentsRes[0]?.html || '';
+          }
+
+          ragContext = `External knowledge:\nBasic info: ${basicSnippets}\nWeb details: ${webContent}\nNews updates: ${newsContent}\nExpress Agent answer: ${expressAnswer}\nFull contents from ${contentsUrl}: ${contentsContent}`;
+          sources = `\n\nSources:\n- Basic: ${basicUrls}\n- Web: ${webUrls}\n- News: ${newsUrls}\n- Express Agent: (internal)\n- Contents: ${contentsUrl}`;
+        } catch (error) {
+          console.error('You.com RAG error:', error);  // Fallback to no RAG if fails
+        }
 
         const GPTResponse = await openaiClient.chat.completions.create({
             messages: [
                 {role: "system", content: instructions},
                 ...previousMessages,
-                {role: "user", content: text}
+                {role: "user", content: `${text}\n\n${ragContext}`}
             ],
             model: "gpt-4o",
         })
@@ -289,6 +336,10 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // Append sources to the response for transparency
+        const finalResponseText = `${GPTResponseText}${sources}`;
+
         const avatarUrl = generateAvatarUri({
             seed: existingAgent.name,
             variant: "botttsNeutral",
@@ -301,7 +352,7 @@ export async function POST(req: NextRequest) {
         })
 
         channel.sendMessage({
-            text: GPTResponseText,
+            text: finalResponseText,
             user:{
                 id: existingAgent.id,
                 name: existingAgent.name,
