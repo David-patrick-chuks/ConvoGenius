@@ -1,5 +1,5 @@
 
-# ConvoGenius 🚀
+# ConvoGenius 
 
 [![Next.js](https://img.shields.io/badge/Next.js-Latest-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Latest-blue)](https://www.typescriptlang.org/)
