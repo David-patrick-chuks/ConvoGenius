@@ -1,1 +1,1 @@
-Enhance tRPC endpoints for AI-driven meeting summaries
+Integrate Stream Chat SDK with real-time participant updates
