@@ -1,1 +1,1 @@
-Enhance PostgreSQL queries for scalable chat and video data
+Add fallback AI summarization when transcription fails
