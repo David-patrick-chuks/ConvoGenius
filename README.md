@@ -12,7 +12,7 @@
 **Live Demo:** [https://hacksummit-22wy.vercel.app/](https://hacksummit-22wy.vercel.app/)
 
 **Hackathon Submission:**  
-This project is submitted to the **You.com Hackathon** under **Track 1: Enterprise-Grade Solutions**.  
+This project is submitted to the **Ilorin DevFest Hackathon** .  
 It integrates **five You.com API endpoints**:
 - `/v1/search` → Basic retrieval  
 - `/v1/search?livecrawl=web` → Deep web content  
